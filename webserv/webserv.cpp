@@ -25,5 +25,6 @@ void webserv::run()
     while (true)
     {
         std::cout << "polling" << std::endl;
+        exit(0);
     }
 }

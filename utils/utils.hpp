@@ -16,5 +16,4 @@ int Fcntl(int fd, int cmd, int arg);
 int Setsockopt(int socket, int level, int option_name, const void *option_value, socklen_t option_len);
 time_t getTime();
 bool isTimedOut(time_t start_time);
-
 #endif

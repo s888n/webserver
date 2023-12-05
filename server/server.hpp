@@ -23,6 +23,7 @@
 //class request
 //class response
 //class client
+
 class location
 {
     private:
@@ -39,6 +40,7 @@ class location
 class server
 {
     private:
+    public:
         int port;
         int fd;
         bool autoindex;
@@ -51,7 +53,6 @@ class server
         std::vector<std::string> server_names;
         std::map <int, std::string> error_pages;
         std::vector<location> locations;
-    public:
 
         void setPort(int port);
         void setSocket(int socket);

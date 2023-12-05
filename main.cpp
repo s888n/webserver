@@ -9,7 +9,7 @@ int main(int ac, char **av)
             if (ac == 2)
                 config_file = av[1];
             else
-                config_file = "config/webserv.conf";
+                config_file = "configs/default.conf";
             
             webserv webserver(config_file);
             webserver.init();

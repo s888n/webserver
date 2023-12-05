@@ -138,6 +138,4 @@ void server::createSocket(void)
 
     Listen(fd, SOMAXCONN);
 
-    std::cout << "server is listening on port : " << getPort() << std::endl;
-    
 }
