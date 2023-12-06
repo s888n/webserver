@@ -20,13 +20,25 @@ void webserv::init()
 
 void webserv::addNewClient(struct pollfd &server_pollfd)
 {
-    struct sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
-    int client_fd = Accept(server_pollfd.fd, (struct sockaddr *)&client_addr, &client_len);
+    Client client;
+    client.addrlen = sizeof(client.addr);
+    client._socket  = Accept(server_pollfd.fd, (struct sockaddr *)&client.addr, &client.addrlen);
+    client.timestamp = getTime();
     struct pollfd pollfd;
-    pollfd.fd = client_fd;
+    pollfd.fd = client._socket;
     pollfd.events = POLLIN;
     pollfds.push_back(pollfd);
+
+}
+void webserv::writeToClient(struct pollfd &pollfd,size_t &i)
+{
+    (void)pollfd;
+    (void)i;
+
+}
+void webserv::readFromClient(struct pollfd &pollfd)
+{
+    (void)pollfd;
 }
 
 bool webserv::pollRevents()
@@ -39,9 +51,8 @@ bool webserv::pollRevents()
 
 void webserv::pollError(struct pollfd &pollfd, size_t &i)
 {
-    if ((pollfd.revents & (POLLERR | POLLNVAL)) || !(pollfd.revents & POLLIN) && (pollfd.revents & POLLHUP))
+    if ((pollfd.revents & (POLLERR | POLLNVAL)) || (!(pollfd.revents & POLLIN) && (pollfd.revents & POLLHUP)))
     {
-        //remove client here
         close(pollfd.fd);
         pollfds.erase(pollfds.begin() + i);
         i--;
@@ -77,8 +88,17 @@ void webserv::run()
                 }
             }
             else if (pollfds[i].revents & POLLOUT)
-                //send response
+                writeToClient(pollfds[i], i);
+
 
         }
     }
+}
+
+Client *webserv::getClient(int fd)
+{
+    for (size_t i = 0; i < clients.size(); i++)
+        if (clients[i]._socket == fd)
+            return &clients[i];
+    return NULL;
 }

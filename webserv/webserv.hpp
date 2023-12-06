@@ -44,6 +44,10 @@
 #include "../server/server.hpp"
 #include "../utils/utils.hpp"
 #include "../parser/parser.hpp"
+#include "../cgi/cgi.hpp"
+#include "../Request/Request.hpp"
+#include "../Response/Response.hpp"
+#include "../client/Client.hpp"
 
 #define TIMEOUT 1000
 #define BUFFER_SIZE 1024
@@ -55,14 +59,15 @@ class webserv
     public:
         char buffer[BUFFER_SIZE];
         std::vector<server> servers;
+        std::vector<Client> clients;
         std::vector<struct pollfd> pollfds;
-        
         webserv(std::string &filename);
         void addNewClient(struct pollfd &server_pollfd);
         void readFromClient(struct pollfd &pollfd);
-        void writeToClient(struct pollfd &pollfd);
+        void writeToClient(struct pollfd &pollfd,size_t &i);
         bool pollRevents();
         void pollError(struct pollfd &pollfd, size_t &i);
+        Client *getClient(int fd);
         bool isServer(int fd);
         void init();
         void run();
