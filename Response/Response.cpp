@@ -21,17 +21,16 @@ Response::Response()
     _status[505] = "HTTP Version Not Supported";
     fileSend = NULL;
     _isheadSend = false;
-
 }
 
 void Response::makeHeader(int status)
 {
     _header = "HTTP/1.1 " + std::to_string(status) + " " + _status[status] + "\r\n";
-    _headers.erase(_headers.begin());
-    while(_headers.size() > 0)
+    _headersResponse.erase(_headersResponse.begin());
+    while(_headersResponse.size() > 0)
     {
-        _header += _headers.begin()->first + ": " + _headers.begin()->second + "\r\n";
-        _headers.erase(_headers.begin());
+        _header += _headersResponse.begin()->first + ": " + _headersResponse.begin()->second + "\r\n";
+        _headersResponse.erase(_headersResponse.begin());
     }
 }
 
@@ -84,7 +83,7 @@ void Response::sendRangeBody(int fd ,size_t start)
     _header = "HTTP/1.1 206 Partial Content\r\n";
     _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(start + ret) + "/" + std::to_string(fileSend->tellg()) + "\r\n";
     _header += "Content-Length: " + std::to_string(ret) + "\r\n";
-    _header += "Content-Type: " + _headers["Content-Type"] + "\r\n";
+    _header += "Content-Type: " + _headersResponse["Content-Type"] + "\r\n";
     _header += "Accept-Ranges: bytes\r\n";
     _header += "Connection: keep-alive\r\n"; 
     _header += "\r\n";

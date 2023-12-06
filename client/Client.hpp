@@ -3,6 +3,7 @@
 #include <iostream>
 #include "../Request/Request.hpp"
 #include "../Response/Response.hpp"
+#include "../server/server.hpp"
 #include <fstream>
 #include <sstream>
 #include <sys/socket.h>
@@ -10,6 +11,7 @@
 #include <arpa/inet.h>
 class Request;
 class Response;
+class server;
 
 class Client : public Request, public Response
 {
@@ -19,15 +21,17 @@ class Client : public Request, public Response
         std::string _host;
         // int _port;
     public:
-
+        std::vector<server> *_servers;
         int _socket;
         struct sockaddr_in addr;
         socklen_t addrlen;
         time_t timestamp;
+        int serverFd;
 
         Client();
         void readRequest();
         void readheader();
+        server& findServer();
         void readbody();
         void sendResponse();
         ~Client();

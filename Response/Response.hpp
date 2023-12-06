@@ -9,7 +9,7 @@
 class Response
 {
     protected:
-        std::unordered_map<std::string, std::string> _headers;
+        std::unordered_map<std::string, std::string> _headersResponse;
         std::map<int,std::string> _status;
         std::string _filePath;
         std::fstream *fileSend;

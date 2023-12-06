@@ -5,6 +5,7 @@
 #include <fstream>
 #include <map>
 class location;
+class server;
 class Request
 {
     protected:
@@ -20,6 +21,7 @@ class Request
         std::ofstream *_os;
         std::string _path;
         size_t      _contentLength;
+        server      *_server;
     public:
 
         Request();
@@ -30,6 +32,7 @@ class Request
         bool checkVirsion();
         bool checkMethod();
         void uriToPath();
+        void matchlocation();
 
         void parseBody();
         void readBoundry();
@@ -40,6 +43,9 @@ class Request
         void matchlocationForGET();
         void matchlocationForPOST();
         void matchlocationForDELETE();
+
+
+        int getErrorCode();
         ~Request();
 };
 

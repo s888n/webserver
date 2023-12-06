@@ -13,6 +13,10 @@ Request::~Request()
 {
 }
 
+int Request::getErrorCode()
+{
+    return _errorCode;
+}
 
 void Request::ParseRequest(std::string request)
 {
@@ -21,9 +25,9 @@ void Request::ParseRequest(std::string request)
     tmp = request.substr(0, request.find("\r\n"));
     this->_headers["Method"] = tmp.substr(0, tmp.find(" "));
     tmp = tmp.substr(tmp.find(" ") + 1);
-    this->_headers["Uri"] = tmp.substr(0, tmp.find(" "));
-    tmp = tmp.substr(tmp.find(" ") + 1);
-    this->_headers["Version"] = tmp;
+    this->_headers["Version"] = tmp.substr(tmp.find_last_of(" ") + 1);
+    tmp = tmp.substr(0,tmp.find_last_of(" "));
+    this->_headers["Uri"]= tmp;
     request = request.substr(request.find("\r\n") + 2);
     while(request != "\r\n" && request != "")
     {
@@ -34,25 +38,26 @@ void Request::ParseRequest(std::string request)
 
 void Request::checkRequest()
 {
-    if(!checkVirsion())
-        return(_isError = true, void());
-    if(!checkUri())
-        return(_isError = true, void());
-    if(!checkMethod())
-        return(_isError = true, void());
+    if(checkVirsion() == false)
+        throw (_isError = true, "http version not supported");
+    if(checkUri()== false)
+        throw (_isError = true, "uri error");
+    if(checkMethod()== false)
+        throw (_isError = true, "method error");
 }
 
 bool Request::checkUri()
 {
     std::string validChar = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%";
     std::string tmp;
-    tmp = _headers["uri"];
+    tmp = _headers["Uri"];
+    std::cout << tmp << std::endl;
     if(tmp.length() > 2048)
         return (_errorCode = 414 ,false); // Request-URI Too Long
     if(tmp.front() != '/')
-        return (_errorCode = 400 ,false); // Bad Request
+        return (_errorCode = 400 ,false);// Bad Request
     for(size_t i = 0;i < tmp.length();i++)
-        if(!validChar.find(tmp.at(i)))
+        if(validChar.find(tmp.at(i)) == std::string::npos)
             return (_errorCode = 400 ,false); // Bad Request
     return true;
 }
@@ -62,7 +67,7 @@ bool Request::checkVirsion()
     std::string tmp;
     std::string protocol = "HTTP/";
     tmp = _headers["Version"];
-    if(protocol.compare(0, protocol.length(), tmp) != 0)
+    if(protocol != tmp.substr(0,5))
         return (_errorCode = 400 ,false); // Bad Request
     if(tmp != "HTTP/1.1")
         return (_errorCode = 505 ,false); // HTTP Version Not Supported
@@ -75,11 +80,16 @@ bool Request::checkMethod()
     tmp = _headers["Method"];
     if(tmp != "GET" && tmp != "POST" && tmp != "DELETE" )                                        
         return (_errorCode = 501 ,false);  // Not Implemented
+    if(tmp == "POST")
+    {
+        if(_headers.find("Content-Length") == _headers.end()  && _headers.find("Transfer-Encoding") == _headers.end())
+            return (_errorCode = 411 ,false); // Length Required
+        if(_headers.find("Transfer-Encoding") != _headers.end())
+            if(_headers["Transfer-Encoding"] != "chunked")
+                return (_errorCode = 501 ,false); // Not Implemented
+    }
     return true;
 }
-
-
-
 
 std::string *Request::getHeader(std::string header)
 {
@@ -103,16 +113,30 @@ void Request::uriToPath()
         if(tmp.at(i)== '%')
         {
             std::string tmp2;
+            int ch;
             tmp2 = tmp.substr(i + 1, 2);
-            ss <<std::hex << tmp2;
-            tmp.replace(i, 3, ss.str());
+            ss << std::hex << tmp2;
+            ss >> ch;
+            tmp.replace(i, 3, 1,ch);
         }
     }
     _headers["Path"] = tmp;
 }
 
+
+void Request::matchlocation()
+{
+    if(_headers["Method"] == "GET")
+        matchlocationForGET();
+    else if(_headers["Method"] == "POST")
+        matchlocationForPOST();
+    else if(_headers["Method"] == "DELETE")
+        matchlocationForDELETE();
+}
+
 void Request::matchlocationForGET()
 {
+    _
     
 }
 void Request::matchlocationForPOST()

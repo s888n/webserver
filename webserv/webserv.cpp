@@ -22,13 +22,15 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
 {
     Client client;
     client.addrlen = sizeof(client.addr);
+    client._servers = &servers;
     client._socket  = Accept(server_pollfd.fd, (struct sockaddr *)&client.addr, &client.addrlen);
     client.timestamp = getTime();
+    client.serverFd = server_pollfd.fd;
     struct pollfd pollfd;
     pollfd.fd = client._socket;
     pollfd.events = POLLIN;
     pollfds.push_back(pollfd);
-
+    clients.push_back(client);
 }
 void webserv::writeToClient(struct pollfd &pollfd,size_t &i)
 {
@@ -38,7 +40,20 @@ void webserv::writeToClient(struct pollfd &pollfd,size_t &i)
 }
 void webserv::readFromClient(struct pollfd &pollfd)
 {
-    (void)pollfd;
+    // (void)pollfd;
+    Client* client = getClient(pollfd.fd);
+    try
+    {
+        if (client == NULL)
+            return;
+        client->readRequest();
+
+    }catch(const char *e)
+    {
+        pollfd.events = POLLOUT;
+        std::cout << e << std::endl;
+        std::cout << "error code :" << client->getErrorCode() << std::endl;
+    }
 }
 
 bool webserv::pollRevents()
@@ -53,6 +68,7 @@ void webserv::pollError(struct pollfd &pollfd, size_t &i)
 {
     if ((pollfd.revents & (POLLERR | POLLNVAL)) || (!(pollfd.revents & POLLIN) && (pollfd.revents & POLLHUP)))
     {
+        //reemove client
         close(pollfd.fd);
         pollfds.erase(pollfds.begin() + i);
         i--;
@@ -71,7 +87,6 @@ void webserv::run()
 {
     while (true)
     {
-        std::cout << "hamza " << std::endl;
         if (!pollRevents())
             continue;
         for (size_t i = 0; i < pollfds.size(); i++)
@@ -82,16 +97,10 @@ void webserv::run()
                 if (isServer(pollfds[i].fd))
                     addNewClient(pollfds[i]);
                 else
-                {
-                    //read from client
-                    //parse request
-                    //create response
-                }
+                    readFromClient(pollfds[i]);
             }
             else if (pollfds[i].revents & POLLOUT)
                 writeToClient(pollfds[i], i);
-
-
         }
     }
 }
@@ -102,4 +111,4 @@ Client *webserv::getClient(int fd)
         if (clients[i]._socket == fd)
             return &clients[i];
     return NULL;
-}
+} 
