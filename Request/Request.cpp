@@ -35,7 +35,7 @@ void Request::ParseRequest(std::string request)
 void Request::checkRequest()
 {
     if(!checkVirsion())
-       return(_isError = true, void());
+        return(_isError = true, void());
     if(!checkUri())
         return(_isError = true, void());
     if(!checkMethod())
