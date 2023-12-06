@@ -1,6 +1,7 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -17,12 +18,6 @@
 #include <poll.h>
 
 #include "../webserv/webserv.hpp"
-
-//class location
-//class server
-//class request
-//class response
-//class client
 #include <utility>
 class location
 {
