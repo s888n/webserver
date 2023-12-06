@@ -216,17 +216,11 @@ server parser::parseServer(std::string &sb)
     serverBlock.erase(serverBlock.find_last_of("}"));
     trim(serverBlock, " \t\n\r");
     server server = getServer(split(serverBlock, ";"));
+    parseLocationBlocks(lbs, server);
+    setDefaultLocation(server);
+    //printServer(server);
     return server;
 }
-
-
-
-location parser::parseLocation(std::string locationBlock)
-{
-    location location;
-    return location;
-}
-
 
 server parser::getServer(stringVector values)
 {
@@ -259,8 +253,6 @@ server parser::getServer(stringVector values)
             throw std::runtime_error("Error: unknown directive ");
     }
     setServerDefaultValues(server, values);
-    printServer(server);
-    std::cout<<"-------------------"<<std::endl;
     return server;
 }
 
@@ -450,6 +442,32 @@ void printServer(server &s)
         std::cout << std::endl;
     std::cout << "autoindex: " << s.autoindex << std::endl;
     std::cout << "max_body_size: " << s.max_body_size << std::endl;
+    std::cout << "locations: " << std::endl;
+    for (size_t i = 0; i < s.locations.size(); i++)
+    {
+        std::cout << "path: " << s.locations[i].path << std::endl;
+        std::cout << "autoindex: " << s.locations[i].autoindex << std::endl;
+        std::cout << "isReturn: " << s.locations[i].isReturn << std::endl;
+        std::cout << "isCgi: " << s.locations[i].isCgi << std::endl;
+        std::cout << "compiler: " << s.locations[i].compiler << std::endl;
+        std::cout << "cgi_path: " << s.locations[i].cgi_path << std::endl;
+        std::cout << "max_body_size: " << s.locations[i].max_body_size << std::endl;
+        std::cout << "root: " << s.locations[i].root << std::endl;
+        std::cout << "indexes: ";
+        for (size_t j = 0; j < s.locations[i].indexes.size(); j++)
+            std::cout << s.locations[i].indexes[j] << " ";
+        std::cout << std::endl;
+        std::cout << "methods: ";
+        for (size_t j = 0; j < s.locations[i].methods.size(); j++)
+            std::cout << s.locations[i].methods[j] << " ";
+        std::cout << std::endl;
+        std::cout << "error_pages: ";
+        for (std::map<int, std::string>::iterator it = s.locations[i].error_pages.begin(); it != s.locations[i].error_pages.end(); it++)
+            std::cout << it->first << " " << it->second << " ";
+        std::cout << std::endl;
+        std::cout << "return: " << s.locations[i]._return.first << " " << s.locations[i]._return.second << std::endl;
+        std::cout << "-------------------" << std::endl;
+    }
 }
 
 void parser::validateDirectiveCount(stringVector &values)
@@ -477,4 +495,184 @@ void parser::validateDirectiveCount(stringVector &values)
         if (count > 1)
             throw std::runtime_error("Error: duplicate directive");
     }
+}
+
+void parser::parseLocationBlocks(stringVector lbs, server &server)
+{
+    for (size_t i = 0; i < lbs.size(); i++)
+        server.locations.push_back(parseLocation(lbs[i], server));
+}
+
+location parser::parseLocation(std::string &lb,server &server)
+{
+    location location;
+    
+    location.path = extractPath(lb);
+    //if path ends with .py or .php cgi = true
+    if(location.path.find(".py") != std::string::npos || location.path.find(".php") != std::string::npos)
+        location.isCgi = true;
+    else
+        location.isCgi = false;
+    std::string locationBlock = lb.substr(lb.find("{") + 1, lb.find_last_of("}") - lb.find("{") - 1);
+    trim(locationBlock, " \t\n\r");
+    stringVector values = split(locationBlock, ";");
+    for (size_t i = 0; i < values.size(); i++)
+    {
+        stringVector tokens = split(values[i], " \t\n\r");
+        if (tokens.size() != 2)
+            throw std::runtime_error("Error: invalid directive");
+        if (tokens[0] == "autoindex")
+            location.autoindex = setAutoindex(tokens);
+        else if (tokens[0] == "return")
+        {
+            location._return = setLocationReturn(tokens);
+            location.isReturn = true;
+        }
+        else if (tokens[0] == "compiler")
+            location.compiler = setLocationCompiler(tokens);
+        else if (tokens[0] == "cgi_path")
+            location.cgi_path = setLocationCgiPath(tokens);
+        else if (tokens[0] == "max_body_size")
+            location.max_body_size = setMaxBodySize(tokens);
+        else if (tokens[0] == "root")
+            location.root = setRoot(tokens);
+        else if (tokens[0] == "index")
+            location.indexes = setIndexes(tokens);
+        else if (tokens[0] == "allow")
+            location.methods = setMethods(tokens);
+        else if (tokens[0] == "error_pages")
+            location.error_pages = setErrorPages(tokens);
+        else
+            throw std::runtime_error("Error: unknown directive ");
+    }
+    setLocationDefaultValues(location, server, values);
+    validateLocationDirectiveCount(values);
+    return location;
+}
+
+std::string parser::extractPath(std::string &str)
+{
+    size_t start = str.find("location");
+    if (start == std::string::npos)
+        throw std::runtime_error("Error: invalid location block");
+    start += 8;
+    
+    while (str[start] && isspace(str[start]))
+        start++;
+    size_t end = start;
+    while (str[end] && !isspace(str[end])&& str[end] != '{')
+        end++;
+    if (str[end] == '{')
+        end--;
+    std::string path = str.substr(start, end - start + 1);
+    trim(path, " \t\n\r");
+    if (path.length() == 0)
+        throw std::runtime_error("Error: invalid path in location block");
+    return path;
+}
+std::pair<int ,std::string> parser::setLocationReturn(stringVector &values)
+{
+    //return consists of 2 tokens a code and a path
+    stringVector tokens = split(values[1], "=");
+    if (tokens.size() != 2)
+        throw std::runtime_error("Error: invalid return");
+    if (tokens[0].find_first_not_of("0123456789") != std::string::npos|| tokens[0].length() > 3)
+        throw std::runtime_error("Error: invalid return");
+    int code = std::atoi(tokens[0].c_str());
+    if (code < 100 || code > 599)
+        throw std::runtime_error("Error: invalid return");
+    std::string path = tokens[1];
+    trim(path, " \t\n\r");
+    std::pair <int,std::string>_return = std::make_pair(code,path);
+    return _return;
+}
+std::string parser::setLocationCompiler(stringVector &values)
+{
+    std::string compiler = values[1];
+    trim(compiler, " \t\n\r");
+    return compiler;
+}
+
+std::string parser::setLocationCgiPath(stringVector &values)
+{
+    std::string cgi_path = values[1];
+    trim(cgi_path, " \t\n\r");
+    return cgi_path;
+}
+
+void parser::setLocationDefaultValues(location &location, server & server, stringVector values)
+{
+    for(size_t i = 0 ; i < values.size(); i++)
+    {
+        if (!directiveExists("root", values))
+            location.root = server.root;
+        if (!directiveExists("index", values)&& location.indexes.size() == 0)
+            location.indexes = server.indexes;
+        if (!directiveExists("allow", values)&& location.methods.size() == 0)
+            location.methods = server.methods;
+        if (!directiveExists("error_pages", values))
+            location.error_pages = server.error_pages;
+        if (!directiveExists("autoindex", values))
+            location.autoindex = server.autoindex;
+        if (!directiveExists("max_body_size", values))
+            location.max_body_size = server.max_body_size;
+    }
+    if (location.isCgi)
+    {
+        if (!directiveExists("compiler", values))
+            throw std::runtime_error("Error: missing compiler directive");
+        if (!directiveExists("cgi_path", values))
+            throw std::runtime_error("Error: missing cgi_path directive");
+    }
+
+}
+void parser::validateLocationDirectiveCount(stringVector &values)
+{
+    stringVector directives;
+    directives.push_back("autoindex");
+    directives.push_back("return");
+    directives.push_back("compiler");
+    directives.push_back("cgi_path");
+    directives.push_back("max_body_size");
+    directives.push_back("root");
+    directives.push_back("index");
+    directives.push_back("allow");
+    directives.push_back("error_pages");
+    
+    for (size_t i = 0; i < directives.size(); i++)
+    {
+        int count = 0;
+        for (size_t j = 0; j < values.size(); j++)
+        {
+            stringVector tokens = split(values[j], " \t\n\r");
+            if (tokens[0] == directives[i])
+                count++;
+        }
+        if (count > 1)
+            throw std::runtime_error("Error: duplicate directive in location block");
+    }
+}
+
+void parser::setDefaultLocation(server &server)
+{
+    //if '/' location block does not exist create it
+    std::vector<location> locations = server.locations;
+    for (size_t i = 0; i < locations.size(); i++)
+    {
+        if (locations[i].path == "/")
+            return;
+    }
+    location location;
+    location.path = "/";
+    location.autoindex = server.autoindex;
+    location.isReturn = false;
+    location.isCgi = false;
+    location.compiler = "";
+    location.cgi_path = "";
+    location.max_body_size = server.max_body_size;
+    location.root = server.root;
+    location.indexes = server.indexes;
+    location.methods = server.methods;
+    location.error_pages = server.error_pages;
+    server.locations.push_back(location);
 }

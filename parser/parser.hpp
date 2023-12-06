@@ -28,8 +28,6 @@ class parser
         void readFile();
         void validate();
         server parseServer(std::string &sb);
-        location parseLocation(std::string locationBlock);
-
         int setPort(stringVector &values);
         std::string setHost(stringVector &values);
         std::string setRoot(stringVector &values);
@@ -46,8 +44,17 @@ class parser
         stringVector extractLocations(std::string &str);
         server getServer(stringVector values);
         bool directiveExists(std::string directive, stringVector &values);
-        void setServerDefaultValues(server &server,stringVector values);
+        void setServerDefaultValues(server &server, stringVector values);
         void validateDirectiveCount(stringVector &values);
+        void parseLocationBlocks(stringVector lbs, server &server);
+        location parseLocation(std::string &lb, server &server);
+        std::string extractPath(std::string &str);
+        std::pair<int, std::string> setLocationReturn(stringVector &values);
+        std::string setLocationCompiler(stringVector &values);
+        std::string setLocationCgiPath(stringVector &values);
+        void setLocationDefaultValues(location &location, server & server, stringVector values);
+        void validateLocationDirectiveCount(stringVector &values);
+        void setDefaultLocation(server &server);
 };
 
 #endif

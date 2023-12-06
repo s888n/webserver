@@ -56,6 +56,7 @@ class webserv
         char buffer[BUFFER_SIZE];
         std::vector<server> servers;
         std::vector<struct pollfd> pollfds;
+        
         webserv(std::string &filename);
         void init();
         void run();

@@ -1,60 +1,4 @@
 #include "server.hpp"
-
-void server::setPort(int port)
-{
-    this->port = port;
-}
-
-void server::setSocket(int fd)
-{
-    this->fd = fd;
-}
-
-void server::setAutoindex(bool autoindex)
-{
-    this->autoindex = autoindex;
-}
-
-void server::setMaxBodySize(size_t max_body_size)
-{
-    this->max_body_size = max_body_size;
-}
-
-void server::setAddr(struct sockaddr_in addr)
-{
-    this->addr = addr;
-}
-
-void server::setHost(std::string host)
-{
-    this->host = host;
-}
-
-void server::setRoot(std::string root)
-{
-    this->root = root;
-}
-
-void server::setIndexes(std::vector<std::string> indexes)
-{
-    this->indexes = indexes;
-}
-
-void server::setMethods(std::vector<std::string> methods)
-{
-    this->methods = methods;
-}
-
-void server::setServerNames(std::vector<std::string> server_names)
-{
-    this->server_names = server_names;
-}
-
-void server::setErrorPages(std::map <int, std::string> error_pages)
-{
-    this->error_pages = error_pages;
-}
-
 int server::getPort() const
 {
     return this->port;
@@ -111,10 +55,6 @@ std::map <int, std::string> server::getErrorPages() const
     return this->error_pages;
 }
 
-void server::setLocations(std::vector<location> locations) 
-{
-    this->locations = locations;
-}
 
 std::vector<location> server::getLocations() const
 {
@@ -139,3 +79,4 @@ void server::createSocket(void)
     Listen(fd, SOMAXCONN);
 
 }
+

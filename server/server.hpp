@@ -23,18 +23,23 @@
 //class request
 //class response
 //class client
-
+#include <utility>
 class location
 {
     private:
+    public:
         bool autoindex;
-        size_t max_body_size;
+        std::pair <int,std::string>_return;
+        bool isReturn;
+        bool isCgi;
         std::string path;
+        std::string compiler;
+        std::string cgi_path;
+        size_t max_body_size;
         std::string root;
         std::vector<std::string> methods;
         std::vector<std::string> indexes;
-        std::string _return;
-        bool isCgi;
+        std::map <int, std::string> error_pages;
 };
 
 class server
@@ -54,18 +59,6 @@ class server
         std::map <int, std::string> error_pages;
         std::vector<location> locations;
 
-        void setPort(int port);
-        void setSocket(int socket);
-        void setAutoindex(bool autoindex);
-        void setMaxBodySize(size_t max_body_size);
-        void setAddr(struct sockaddr_in addr);
-        void setHost(std::string host);
-        void setRoot(std::string root);
-        void setIndexes(std::vector<std::string> indexes);
-        void setMethods(std::vector<std::string> methods);
-        void setServerNames(std::vector<std::string> server_names);
-        void setErrorPages(std::map <int, std::string> error_pages);
-        void setLocations(std::vector<location> locations);
         int getPort() const;
         int getSocket()const;
         bool getAutoindex()const;
