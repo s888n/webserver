@@ -45,14 +45,14 @@
 #include "../utils/utils.hpp"
 #include "../parser/parser.hpp"
 #include "../cgi/cgi.hpp"
-#include "../Request/Request.hpp"
-#include "../Response/Response.hpp"
+
 #include "../client/Client.hpp"
 
 #define TIMEOUT 1000
 #define BUFFER_SIZE 1024
 
 class server;
+class Client;
 
 class webserv
 {

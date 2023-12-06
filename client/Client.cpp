@@ -4,6 +4,9 @@ Client::Client()
 {
     _isparsed = false;
 }
+Client::~Client()
+{
+} 
 
 void Client::readRequest()
 {

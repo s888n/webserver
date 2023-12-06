@@ -71,6 +71,7 @@ void webserv::run()
 {
     while (true)
     {
+        std::cout << "hamza " << std::endl;
         if (!pollRevents())
             continue;
         for (size_t i = 0; i < pollfds.size(); i++)
