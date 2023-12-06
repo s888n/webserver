@@ -58,6 +58,12 @@ class webserv
         std::vector<struct pollfd> pollfds;
         
         webserv(std::string &filename);
+        void addNewClient(struct pollfd &server_pollfd);
+        void readFromClient(struct pollfd &pollfd);
+        void writeToClient(struct pollfd &pollfd);
+        bool pollRevents();
+        void pollError(struct pollfd &pollfd, size_t &i);
+        bool isServer(int fd);
         void init();
         void run();
 };
