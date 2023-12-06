@@ -45,11 +45,18 @@ void Client::readbody()
     delete [] buffer;
 }
 
-
- void Request::sendResponse()
+ void Client::sendResponse()
  {
-    if(getheader("Range"))
-        sendRangeResponse();
+    std::string *tmp = NULL;
+    size_t pos = 0;
+    if((tmp = getHeader("Range")))
+    {
+        std::stringstream ss;
+        tmp->substr(tmp->find("=") + 1);
+        ss << *tmp;
+        ss >> pos;
+        sendRangeBody(_socket, pos);
+    }
     else
     {
         if(_isheadSend == false)

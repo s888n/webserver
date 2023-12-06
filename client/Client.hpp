@@ -4,6 +4,8 @@
 #include <iostream>
 #include "Request/Request.hpp"
 #include "Response/Response.hpp"
+#include <fstream>
+#include <sstream>
 #include <sys/socket.h>
 
 class Request;
