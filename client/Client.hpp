@@ -1,6 +1,5 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
-
 #include <iostream>
 #include "Request/Request.hpp"
 #include "Response/Response.hpp"
@@ -28,5 +27,4 @@ class Client : public Request, public Response
         ~Client();
 };
 
-#endif 
-
+#endif
