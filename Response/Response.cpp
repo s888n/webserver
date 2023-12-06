@@ -99,5 +99,10 @@ void Response::sendRangeBody(int fd ,size_t start)
     delete[] buffer;
     fileSend->close();
 }
+ Response::~Response()
+ {
+     if(fileSend)
+        fileSend->close();
+ }
 
 

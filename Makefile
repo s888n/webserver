@@ -1,10 +1,10 @@
 NAME = webserver
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address 
-SRCS = main.cpp $(wildcard server/*.cpp) $(wildcard utils/*.cpp) $(wildcard parser/*.cpp) $(wildcard webserv/*.cpp) $(wildcard cgi/*.cpp)
+SRCS = main.cpp $(wildcard server/*.cpp) $(wildcard utils/*.cpp) $(wildcard parser/*.cpp) $(wildcard webserv/*.cpp) $(wildcard cgi/*.cpp) $(wildcard client/*.cpp)  $(wildcard Request/*.cpp) $(wildcard Response/*.cpp)   
 OBJDIR = obj
 OBJS = $(addprefix $(OBJDIR)/, $(SRCS:.cpp=.o))
-INC = webserv/webserv.hpp server/server.hpp parser/parser.hpp utils/utils.hpp  cgi/cgi.hpp
+INC = webserv/webserv.hpp server/server.hpp parser/parser.hpp utils/utils.hpp  cgi/cgi.hpp client/Client.hpp Request/Request.hpp Response/Response.hpp
 
 all: $(NAME)
 
