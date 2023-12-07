@@ -9,9 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-class Request;
-class Response;
-class server;
+// class Request;
+// class Response;
 
 class Client : public Request, public Response
 {
@@ -34,6 +33,8 @@ class Client : public Request, public Response
         server& findServer();
         void readbody();
         void sendResponse();
+        bool getIsParsed() const;
+        void fillResponseMap();
         ~Client();
 };
 

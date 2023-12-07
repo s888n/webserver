@@ -15,11 +15,12 @@ class Request
         std::string _boundry;
         bool        _isError;
         int         _errorCode;
-        bool        _headerIsSend;
+        bool        _headerIsRecv;
         bool        _isReadBody;
         bool        _isboundry;
         std::ofstream *_os;
-        std::string _path;
+        std::string _pathFile;
+        std::string _pathDir;
         size_t      _contentLength;
         server      *_server;
     public:
@@ -39,13 +40,18 @@ class Request
         void readBoundrywithChunked(); 
         void readChunked();
 
+
+        void findlocation();
+        void tryFiles();
+
         //not implemented
         void matchlocationForGET();
         void matchlocationForPOST();
         void matchlocationForDELETE();
 
-
+        bool getIsReadBody();
         int getErrorCode();
+        bool getIsheaderIsRecv();
         ~Request();
 };
 

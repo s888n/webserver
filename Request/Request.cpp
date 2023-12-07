@@ -1,21 +1,37 @@
 #include "Request.hpp"
+#include "../server/server.hpp"
 #include <sstream>
 
 Request::Request()
 {
     _isError = false;
     _isReadBody = false;
-    _headerIsSend = false;
+    _headerIsRecv = false;
+    _isboundry = false;
+    _os = NULL;
+
     // location = NULL;
 }
 
 Request::~Request()
 {
+
 }
 
 int Request::getErrorCode()
 {
     return _errorCode;
+}
+
+
+bool Request::getIsReadBody()
+{
+    return _isReadBody;
+}
+
+bool Request::getIsheaderIsRecv()
+{
+    return _headerIsRecv;
 }
 
 void Request::ParseRequest(std::string request)
@@ -136,13 +152,89 @@ void Request::matchlocation()
 
 void Request::matchlocationForGET()
 {
-    _
-    
+    _isReadBody = false;
+    findlocation();
+    if(std::find(_location->methods.begin(), _location->methods.end(), "GET") == _location->methods.end())
+        throw (_errorCode = 405 ,"method error"); // Method Not Allowed
+    tryFiles();
 }
+
+void Request::tryFiles()
+{
+    std::string     tmp;
+    struct stat     _stat;
+    std::fstream    fs;
+
+    tmp = _location->root;
+    if(tmp.back() == '/')
+        tmp = tmp.substr(0, tmp.length() - 1);
+    tmp = tmp + _headers["Path"];
+    stat(tmp.c_str(), &_stat);
+    fs.open(tmp.c_str(), std::fstream::in);
+    if(S_ISDIR(_stat.st_mode))
+    {
+        for(size_t i = 0; i < _location->indexes.size();i++)
+        {
+            std::string tmp2;
+            if(tmp.back() == '/')
+                tmp2 = tmp + _location->indexes[i];
+            else
+                tmp2 = tmp + "/" + _location->indexes[i];
+            fs.open(tmp2.c_str(), std::fstream::in);
+            if(fs.is_open())
+            {
+                _pathFile = tmp2;
+                _location->autoindex = false;
+                fs.close();
+                return ;
+            }
+        }
+        if (_location->autoindex == true)
+            return (_pathFile = tmp, void());
+        else
+            throw (_errorCode = 403 ,"method error");
+    }
+    else if(fs.is_open())
+    {
+        _pathFile = tmp;
+        fs.close();
+        return;
+    }
+    std::cout << "error hamza" << std::endl;
+    throw (_errorCode = 404 ,"method error");
+}
+
+void Request::findlocation()
+{
+     std::string tmp;
+    tmp = _headers["Path"];
+    if(tmp.back() != '/')
+        tmp += "/";
+    _location = NULL;
+    while(_location == NULL)
+    {
+        for(size_t i = 0; i < _server->locations.size(); i++)
+        {
+            if(tmp == _server->locations[i].path)
+            {
+                _location = &_server->locations[i];
+                break ;
+            }
+        }
+        if(tmp == "/")
+            break;
+        if(tmp.back() == '/')
+            tmp = tmp.substr(0, tmp.length() - 1);
+        else
+            tmp = tmp.substr(0, tmp.find_last_of('/') + 1);
+    }
+}
+
 void Request::matchlocationForPOST()
 {
 
 }
+
 void Request::matchlocationForDELETE()
 {
 
@@ -150,26 +242,27 @@ void Request::matchlocationForDELETE()
 
 void Request::parseBody()
 {
-    std::stringstream ss;
-    std::string *tmp = NULL;
-    // tmp = getHeader("Content-Length");
+    // std::stringstream ss;
+    // std::string *tmp = NULL;
+    // // tmp = getHeader("Content-Length");
+    // // if(tmp)
+    // // {
+    // //     ss << tmp->c_str();
+    // //     ss >> _contentLength;
+    // //     if(_contentLength < _body.length())
+    // //         return (_errorCode = 413 ,void()); // Request Entity Too Large
+    // // }
+    // tmp = getHeader("Content-Type");
     // if(tmp)
     // {
-    //     ss << tmp->c_str();
-    //     ss >> _contentLength;
-    //     if(_contentLength < _body.length())
-    //         return (_errorCode = 413 ,void()); // Request Entity Too Large
+    //     if(tmp->find("boundary=") != std::string::npos)
+    //     {
+    //         _isboundry = true;
+    //         _boundry = tmp->substr(tmp->find("boundary=") + 9);
+    //     }
     // }
-    tmp = getHeader("Content-Type");
-    if(tmp)
-    {
-        if(tmp->find("boundary=") != std::string::npos)
-        {
-            _isboundry = true;
-            _boundry = tmp->substr(tmp->find("boundary=") + 9);
-        }
-    }
 }
+
 void Request::readBoundry()
 {
 

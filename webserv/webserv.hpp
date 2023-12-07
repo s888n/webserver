@@ -64,11 +64,12 @@ class webserv
         webserv(std::string &filename);
         void addNewClient(struct pollfd &server_pollfd);
         void readFromClient(struct pollfd &pollfd);
-        void writeToClient(struct pollfd &pollfd,size_t &i);
+        void writeToClient(struct pollfd &pollfd);
         bool pollRevents();
-        void pollError(struct pollfd &pollfd, size_t &i);
+        void pollError(struct pollfd &pollfd , size_t &i);
         Client *getClient(int fd);
         bool isServer(int fd);
+        void closeClient(int fd);
         void init();
         void run();
 };

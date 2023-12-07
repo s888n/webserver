@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client()
+Client::Client(): Request(), Response()
 {
     _isparsed = false;
     _isReadBody = false;
@@ -9,7 +9,8 @@ Client::Client()
 }
 Client::~Client()
 {
-} 
+   
+}
 
 void Client::readRequest()
 {
@@ -23,7 +24,7 @@ void Client::readheader()
 {
     char buffer[1024];
     int ret = 1;
-    if (!_headerIsSend)
+    if (!_headerIsRecv)
     {
         ret = recv(_socket, buffer, 1024, 0);
         if (ret <= 0)
@@ -37,9 +38,9 @@ void Client::readheader()
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
     checkRequest();
     uriToPath();
-    
+    matchlocation();
+    _file = _pathFile;
     _isparsed = true;
-
 }
 
 void Client::readbody()
@@ -93,3 +94,9 @@ server& Client::findServer()
             return *tmpServer[i];
     return *tmpServer[0];
 }
+
+bool Client::getIsParsed() const
+{
+    return _isparsed;
+}
+

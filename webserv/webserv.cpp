@@ -32,12 +32,17 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
     pollfds.push_back(pollfd);
     clients.push_back(client);
 }
-void webserv::writeToClient(struct pollfd &pollfd,size_t &i)
-{
-    (void)pollfd;
-    (void)i;
-
+void webserv::writeToClient(struct pollfd &pollfd)
+{  
+    Client *client = getClient(pollfd.fd);
+    if(client == NULL)
+        return;
+        client->sendResponse();
 }
+
+
+
+
 void webserv::readFromClient(struct pollfd &pollfd)
 {
     // (void)pollfd;
@@ -47,10 +52,12 @@ void webserv::readFromClient(struct pollfd &pollfd)
         if (client == NULL)
             return;
         client->readRequest();
+        if(client->getIsReadBody() == false && client->getIsParsed() == true)
+            pollfd.events = POLLOUT;
 
     }catch(const char *e)
     {
-        pollfd.events = POLLOUT;
+        pollfd.events = POLLIN;
         std::cout << e << std::endl;
         std::cout << "error code :" << client->getErrorCode() << std::endl;
     }
@@ -97,10 +104,13 @@ void webserv::run()
                 if (isServer(pollfds[i].fd))
                     addNewClient(pollfds[i]);
                 else
+                {
+                    std::cout << "read from client" << std::endl;
                     readFromClient(pollfds[i]);
+                }
             }
             else if (pollfds[i].revents & POLLOUT)
-                writeToClient(pollfds[i], i);
+                writeToClient(pollfds[i]);
         }
     }
 }
@@ -112,3 +122,19 @@ Client *webserv::getClient(int fd)
             return &clients[i];
     return NULL;
 } 
+
+void webserv::closeClient(int fd)
+{
+    for (size_t i = 0; i < clients.size(); i++)
+        if (clients[i]._socket == fd)
+        {
+            clients.erase(clients.begin() + i);
+            break;
+        }
+    for(size_t i = 0; i < pollfds.size(); i++)
+        if(pollfds[i].fd == fd)
+        {
+            pollfds.erase(pollfds.begin() + i);
+            break;
+        }
+}
