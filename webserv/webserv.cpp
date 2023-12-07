@@ -28,6 +28,7 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
     pollfd.fd = client._socket;
     pollfd.events = POLLIN;
     pollfds.push_back(pollfd);
+    clients.push_back(client);
 
 }
 void webserv::writeToClient(struct pollfd &pollfd,size_t &i)
