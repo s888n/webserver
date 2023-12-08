@@ -20,6 +20,7 @@ class Response
         std::string     _header;
         bool            _isheadSend;
         bool           _isBodyEnd;
+        bool            _isConnectionClose;
 
     public:
         Response();
@@ -32,7 +33,9 @@ class Response
         bool getIsheadSend() const;
         void sendExaption(int fd, int status);
         void fillResponseMap();
+        void createLengthHeader();
         bool getIsBodyEnd() const;
+        bool getIsConnectionClose() const;
         ~Response();
 };
 

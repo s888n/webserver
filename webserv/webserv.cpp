@@ -45,9 +45,6 @@ void webserv::writeToClient(struct pollfd &pollfd)
         closeClient(pollfd.fd);
 }
 
-
-
-
 void webserv::readFromClient(struct pollfd &pollfd)
 {
     // (void)pollfd;
@@ -103,7 +100,7 @@ void webserv::run()
             continue;
         for (size_t i = 0; i < pollfds.size(); i++)
         {
-            pollError(pollfds[i], i);
+            //pollError(pollfds[i], i);
             if(pollfds[i].revents & POLLIN)
             {
                 if (isServer(pollfds[i].fd))

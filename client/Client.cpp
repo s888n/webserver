@@ -58,6 +58,7 @@ void Client::readbody()
 
 void Client::sendResponse()
 {
+    signal(SIGPIPE, SIG_IGN);
     std::string *tmp = NULL;
     size_t pos = 0;
     if(_errorCode != 0)
@@ -70,11 +71,10 @@ void Client::sendResponse()
     if(_errorCode == 0)
         _errorCode = 200;
     _statusCode = _errorCode;
-    
     if ((tmp = getHeader("Range")))
     {
         std::stringstream ss;
-        tmp->substr(tmp->find("=") + 1);
+        *tmp =  tmp->substr(tmp->find("=") +  1);
         ss << *tmp;
         ss >> pos;
         sendRangeBody(_socket, pos);
