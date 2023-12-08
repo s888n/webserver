@@ -24,7 +24,10 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
     client.addrlen = sizeof(client.addr);
     client._servers = &servers;
     client._socket  = Accept(server_pollfd.fd, (struct sockaddr *)&client.addr, &client.addrlen);
+    if(client._socket == -1)
+        return;
     client.timestamp = getTime();
+    Fcntl(client._socket, F_SETFL, O_NONBLOCK);
     client.serverFd = server_pollfd.fd;
     struct pollfd pollfd;
     pollfd.fd = client._socket;
@@ -38,6 +41,8 @@ void webserv::writeToClient(struct pollfd &pollfd)
     if(client == NULL)
         return;
         client->sendResponse();
+    if(client->getIsBodyEnd() == true)
+        closeClient(pollfd.fd);
 }
 
 
@@ -131,6 +136,7 @@ void webserv::closeClient(int fd)
     for(size_t i = 0; i < pollfds.size(); i++)
         if(pollfds[i].fd == fd)
         {
+            close(fd);
             pollfds.erase(pollfds.begin() + i);
             break;
         }

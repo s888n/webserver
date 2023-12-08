@@ -66,7 +66,7 @@ void server::createSocket(void)
     int opt = 1;
 
     fd = Socket(AF_INET, SOCK_STREAM, 0);
-
+    Fcntl(fd, F_SETFL, O_NONBLOCK); // f
     Setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     std::memset(&addr, 0, sizeof(addr));

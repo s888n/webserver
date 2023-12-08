@@ -3,7 +3,6 @@
 
 Response::Response()
 {
-    std::cout << "Response constructor" << std::endl;
     _status[200] = "OK";
     _status[201] = "Created";
     _status[202] = "Accepted";
@@ -47,7 +46,20 @@ Response::Response()
     _MimeType[".dll"] = "application/octet-stream";
     _MimeType[".class"] = "application/octet-stream";
     _MimeType[".doc"] = "application/msword";
+
+    _errorPages[400] = "error_pages/400.html";
+    _errorPages[401] = "error_pages/401.html";
+    _errorPages[403] = "error_pages/403.html";
+    _errorPages[404] = "error_pages/404.html";
+    _errorPages[405] = "error_pages/405.html";
+    _errorPages[413] = "error_pages/413.html";
+    _errorPages[414] = "error_pages/414.html";
+    _errorPages[500] = "error_pages/500.html";
+    _errorPages[501] = "error_pages/501.html";
+    _errorPages[505] = "error_pages/505.html";
+
     _isheadSend = false;
+    _isBodyEnd = false;
 }
 
 void Response::makeHeader(int status)
@@ -68,14 +80,21 @@ void Response::sendHeaders(int fd)
     stat(_file.c_str(), &filestat);
     fillResponseMap();
 
-    _headersResponse["Content-Length"] = std::to_string(filestat.st_size);
-    makeHeader(200);
+    fileSend.open(_file, std::ios::in);
+    if(fileSend.is_open())
+        _headersResponse["Content-Length"] = std::to_string(filestat.st_size);
+    makeHeader(_statusCode);
     std::cout << _header << std::endl;
     ret = send(fd,_header.c_str(),_header.length(),0);
     if(ret <= 0)
         return;
     _isheadSend = true;
-    fileSend.open(_file, std::ios::in);
+    std::cout << "_file : " << _file << std::endl;
+    if(!fileSend.is_open())
+    {
+        _isBodyEnd = true;
+        return;
+    }
 }
 
 void Response::sendBody(int fd)
@@ -88,6 +107,7 @@ void Response::sendBody(int fd)
     {
         delete[] buffer;
         fileSend.close();
+        _isBodyEnd = true;
         return;
     }
     ret = send(fd,buffer,ret,0);
@@ -95,6 +115,7 @@ void Response::sendBody(int fd)
     {
         delete[] buffer;
         fileSend.close();
+        _isBodyEnd = true;
         return;
     }
 }
@@ -160,6 +181,8 @@ Response& Response::operator=(Response const &main)
         _MimeType = main._MimeType;
         _headersRequest = main._headersRequest;
         _statusCode = main._statusCode;
+        _errorPages = main._errorPages;
+        _isBodyEnd = main._isBodyEnd;
     }
     return *this;
 }
@@ -169,14 +192,19 @@ void Response::fillResponseMap()
 {
     // std::cout << "extension : " << _file.substr(_file.find_last_of('.')) << std::endl;
     //print MimeType
-    if(_MimeType[_file.substr(_file.find_last_of('.'))].length() > 0)
+    _headersResponse["Content-Type"] = "application/octet-stream";  
+    if(_file.find_last_of('.') != std::string::npos)
+    {
+    if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
         _headersResponse["Content-Type"] = _MimeType[_file.substr(_file.find_last_of('.'))];
     else
          _headersResponse["Content-Type"] = "application/octet-stream";  
-    _headersResponse["Server"] = "Webserve";
-    _headersResponse["Host"] = _headersRequest["Host"];
 
-    _headersResponse["Accept-Ranges"] = "bytes";
+    }
+    _headersResponse["Server"] = "Webserve";
+    // _headersResponse["Host"] = _headersRequest["Host"];
+
+    // _headersResponse["Accept-Ranges"] = "bytes";
     _headersResponse["Connection"] = "Keep-Alive";
 
 }
@@ -184,6 +212,11 @@ void  Response::sendExaption(int fd, int status)
 {
     (void) fd;
     (void) status;
+}
+
+bool Response::getIsBodyEnd() const
+{
+    return _isBodyEnd;
 }
 
 

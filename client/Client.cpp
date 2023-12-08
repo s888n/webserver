@@ -34,6 +34,7 @@ void Client::readheader()
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
+    std::cout << _request.substr(0, _request.find("\r\n\r\n") + 4) << std::endl;
     _server = &findServer();
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
     checkRequest();
@@ -59,6 +60,17 @@ void Client::sendResponse()
 {
     std::string *tmp = NULL;
     size_t pos = 0;
+    if(_errorCode != 0)
+    {
+        _file = _errorPages[_errorCode];
+        if(_location != NULL)
+            if(_location->error_pages.find(_errorCode) != _location->error_pages.end())
+                _file = _location->error_pages[_errorCode];
+    }
+    if(_errorCode == 0)
+        _errorCode = 200;
+    _statusCode = _errorCode;
+    
     if ((tmp = getHeader("Range")))
     {
         std::stringstream ss;

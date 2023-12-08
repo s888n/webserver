@@ -12,12 +12,14 @@ class Response
         std::unordered_map<std::string, std::string> _headersResponse;
         std::map <std::string, std::string> _headersRequest;
         std::map<std::string, std::string> _MimeType;
+        std::map<int, std::string> _errorPages;
         std::map<int,std::string> _status;
         std::string     _file;
         std::fstream    fileSend;
         int             _statusCode;
         std::string     _header;
         bool            _isheadSend;
+        bool           _isBodyEnd;
 
     public:
         Response();
@@ -30,6 +32,7 @@ class Response
         bool getIsheadSend() const;
         void sendExaption(int fd, int status);
         void fillResponseMap();
+        bool getIsBodyEnd() const;
         ~Response();
 };
 

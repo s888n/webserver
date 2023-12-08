@@ -8,6 +8,10 @@ Request::Request()
     _isReadBody = false;
     _headerIsRecv = false;
     _isboundry = false;
+    _errorCode = 0;
+    _contentLength = 0;
+    _location = NULL;
+    _server = NULL;
     _os = NULL;
 
     // location = NULL;
