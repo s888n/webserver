@@ -57,7 +57,7 @@ void webserv::readFromClient(struct pollfd &pollfd)
 
     }catch(const char *e)
     {
-        pollfd.events = POLLIN;
+        pollfd.events = POLLOUT;
         std::cout << e << std::endl;
         std::cout << "error code :" << client->getErrorCode() << std::endl;
     }
@@ -104,10 +104,7 @@ void webserv::run()
                 if (isServer(pollfds[i].fd))
                     addNewClient(pollfds[i]);
                 else
-                {
-                    std::cout << "read from client" << std::endl;
                     readFromClient(pollfds[i]);
-                }
             }
             else if (pollfds[i].revents & POLLOUT)
                 writeToClient(pollfds[i]);

@@ -41,6 +41,7 @@ void Client::readheader()
     matchlocation();
     _file = _pathFile;
     _isparsed = true;
+    _headersRequest = _headers;
 }
 
 void Client::readbody()

@@ -158,6 +158,8 @@ Response& Response::operator=(Response const &main)
         _header = main._header;
         _isheadSend = main._isheadSend;
         _MimeType = main._MimeType;
+        _headersRequest = main._headersRequest;
+        _statusCode = main._statusCode;
     }
     return *this;
 }
@@ -165,13 +167,23 @@ Response& Response::operator=(Response const &main)
 
 void Response::fillResponseMap()
 {
-    std::cout << "extension : " << _file.substr(_file.find_last_of('.')) << std::endl;
+    // std::cout << "extension : " << _file.substr(_file.find_last_of('.')) << std::endl;
     //print MimeType
-    _headersResponse["Content-Type"] = _MimeType[_file.substr(_file.find_last_of('.'))];
+    if(_MimeType[_file.substr(_file.find_last_of('.'))].length() > 0)
+        _headersResponse["Content-Type"] = _MimeType[_file.substr(_file.find_last_of('.'))];
+    else
+         _headersResponse["Content-Type"] = "application/octet-stream";  
     _headersResponse["Server"] = "Webserve";
-    // _headersResponse["Accept-Ranges"] = "bytes";
+    _headersResponse["Host"] = _headersRequest["Host"];
+
+    _headersResponse["Accept-Ranges"] = "bytes";
     _headersResponse["Connection"] = "Keep-Alive";
 
+}
+void  Response::sendExaption(int fd, int status)
+{
+    (void) fd;
+    (void) status;
 }
 
 

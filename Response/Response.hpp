@@ -10,6 +10,7 @@ class Response
 {
     protected:
         std::unordered_map<std::string, std::string> _headersResponse;
+        std::map <std::string, std::string> _headersRequest;
         std::map<std::string, std::string> _MimeType;
         std::map<int,std::string> _status;
         std::string     _file;
@@ -27,6 +28,7 @@ class Response
         void sendBody(int fd);
         void sendRangeBody(int fd,size_t start);
         bool getIsheadSend() const;
+        void sendExaption(int fd, int status);
         void fillResponseMap();
         ~Response();
 };
