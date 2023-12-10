@@ -59,7 +59,7 @@ void Request::ParseRequest(std::string request)
 void Request::checkRequest()
 {
     if(checkVirsion() == false)
-        throw (_isError = true, "http version not supported");
+        throw (_isError = true , "http version not supported");
     if(checkUri()== false)
         throw (_isError = true, "uri error");
     if(checkMethod()== false)
@@ -141,6 +141,7 @@ void Request::uriToPath()
         }
     }
     _headers["Path"] = tmp;
+    std::cout << "::::::::::::path : " << tmp << std::endl;
 }
 
 
@@ -158,8 +159,10 @@ void Request::matchlocationForGET()
 {
     _isReadBody = false;
     findlocation();
+    if(_location->isReturn == true)
+        throw (_errorCode = 301,_isError = false ,"return");
     if(std::find(_location->methods.begin(), _location->methods.end(), "GET") == _location->methods.end())
-        throw (_errorCode = 405 ,"method error"); // Method Not Allowed
+        throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
     tryFiles();
 }
 
@@ -177,6 +180,7 @@ void Request::tryFiles()
     fs.open(tmp.c_str(), std::fstream::in);
     if(S_ISDIR(_stat.st_mode))
     {
+        _pathDir = tmp;
         for(size_t i = 0; i < _location->indexes.size();i++)
         {
             std::string tmp2;
@@ -185,27 +189,25 @@ void Request::tryFiles()
             else
                 tmp2 = tmp + "/" + _location->indexes[i];
             fs.open(tmp2.c_str(), std::fstream::in);
-            if(fs.is_open())
+            if(S_ISREG(_stat.st_mode))
             {
                 _pathFile = tmp2;
                 _location->autoindex = false;
-                fs.close();
                 return ;
             }
         }
         if (_location->autoindex == true)
-            return (_pathFile = tmp, void());
+            throw (_errorCode = 0,_pathFile = tmp, "autoindex");
         else
-            throw (_errorCode = 403 ,"method error");
+            throw (_errorCode = 403,_isError =true ,"method error");
     }
-    else if(fs.is_open())
+    else if(S_ISREG(_stat.st_mode))
     {
         _pathFile = tmp;
-        fs.close();
         return;
     }
     std::cout << "error hamza" << std::endl;
-    throw (_errorCode = 404 ,"method error");
+    throw (_errorCode = 404,_isError =true ,"method error");
 }
 
 void Request::findlocation()

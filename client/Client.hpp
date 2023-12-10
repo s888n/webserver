@@ -26,6 +26,7 @@ class Client : public Request, public Response
         socklen_t addrlen;
         time_t timestamp;
         int serverFd;
+        bool isBodyString;
 
         Client();
         void readRequest();

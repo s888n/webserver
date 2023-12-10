@@ -1,5 +1,6 @@
 #include "Response.hpp"
 #include <sys/stat.h>
+#include <dirent.h>
 #include <sstream>
 
 Response::Response()
@@ -22,6 +23,7 @@ Response::Response()
     _status[500] = "Internal Server Error";
     _status[501] = "Not Implemented";
     _status[505] = "HTTP Version Not Supported";
+
 
     _MimeType[".html"] = "text/html";
     _MimeType[".css"] = "text/css";
@@ -83,6 +85,8 @@ void Response::sendHeaders(int fd)
     stat(_file.c_str(), &filestat);
     fillResponseMap();
     fileSend.open(_file, std::ios::in);
+    if(!S_ISREG(filestat.st_mode))
+        makeBody();
     if(fileSend.is_open())
         createLengthHeader();
     makeHeader(_statusCode);
@@ -201,6 +205,7 @@ Response& Response::operator=(Response const &main)
         _errorPages = main._errorPages;
         _isBodyEnd = main._isBodyEnd;
         _isConnectionClose = main._isConnectionClose;
+        _bodyResponse = main._bodyResponse;
     }
     return *this;
 }
@@ -210,7 +215,7 @@ void Response::fillResponseMap()
 {
     // std::cout << "extension : " << _file.substr(_file.find_last_of('.')) << std::endl;
     //print MimeType
-    _headersResponse["Content-Type"] = "application/octet-stream";  
+    _headersResponse["Content-Type"] = "text/html";  
     if(_file.find_last_of('.') != std::string::npos)
     {
     if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
@@ -242,8 +247,9 @@ void Response::createLengthHeader()
     size_t pos = 0;
     struct stat filestat;
     stat(_file.c_str(), &filestat);
-
-    if(_headersRequest.find("Range") != _headersRequest.end())
+    if(_bodyResponse.size() > 0)
+        _headersResponse["Content-Length"] = std::to_string(_bodyResponse.size());
+    else if(_headersRequest.find("Range") != _headersRequest.end())
     {
         std::string tmp = _headersRequest["Range"];
         tmp = tmp.substr(tmp.find("=") + 1);
@@ -263,6 +269,60 @@ void Response::createLengthHeader()
 bool Response::getIsConnectionClose() const
 {
     return _isConnectionClose;
+}
+
+ void Response::sendBodyString(int fd)
+ {
+        int ret;
+        std::string tmp;
+        // std::cout << "hamza now is here "   << std::endl;
+        if(_bodyResponse.size() > 1024)
+        {
+            tmp = _bodyResponse.substr(0,1024);
+            _bodyResponse = _bodyResponse.substr(1024);
+            ret = send(fd,_bodyResponse.c_str(),1024,0);
+            if(ret <= 0 || _bodyResponse.size() == 0)
+            {
+                _isBodyEnd = true;
+                _isConnectionClose = true;
+            }
+            
+        }else 
+        {
+            ret = send(fd,_bodyResponse.c_str(),_bodyResponse.size(),0);
+            if(ret <= 0)
+            {
+                _isBodyEnd = true;
+                _isConnectionClose = true;
+            }
+            _bodyResponse.clear();
+        }
+ }
+
+void Response::makeBody()
+{
+    struct stat filestat;
+    struct dirent *en;
+    //std::string tmp = _headersRequest["Path"].substr(0, _headersRequest["Path"].find_last_of('/') + 1);
+    if(_headersRequest["Path"].back() != '/')
+        _headersRequest["Path"] += "/";
+    stat(_file.c_str(), &filestat);
+    if (_statusCode == 200 && S_ISDIR(filestat.st_mode))
+    {
+        DIR *dir = opendir(_file.c_str());
+        _bodyResponse  = "<html>\n<head>\n<title>Index of " + _headersRequest["Path"] + "</title>\n</head>\n<body>\n<h1>Index of " + _headersRequest["Path"] + "</h1>\n";
+        while((en =readdir(dir)) != NULL)
+        {
+            if(std::string(en->d_name).front() == '.')
+                continue;
+            _bodyResponse += "<a href=\"" + _headersRequest["Path"] + std::string(en->d_name) + "\">" + std::string(en->d_name) + "</a><br>";
+        }
+        _bodyResponse += "</body>\n</html>";
+        closedir(dir);
+    }else
+    {
+        _bodyResponse = "<html>\n<head>\n<title>" + std::to_string(_statusCode) + " " + _status[_statusCode] + "</title>\n</head>\n<body>\n<h1>" + std::to_string(_statusCode) + " " + _status[_statusCode] + "</h1>" + "\n</body>\n</html>";
+    }
 }
 
 

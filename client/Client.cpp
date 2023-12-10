@@ -39,10 +39,10 @@ void Client::readheader()
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
     checkRequest();
     uriToPath();
+    _headersRequest = _headers;
     matchlocation();
     _file = _pathFile;
     _isparsed = true;
-    _headersRequest = _headers;
 }
 
 void Client::readbody()
@@ -61,13 +61,6 @@ void Client::sendResponse()
     signal(SIGPIPE, SIG_IGN);
     std::string *tmp = NULL;
     size_t pos = 0;
-    if(_errorCode != 0)
-    {
-        _file = _errorPages[_errorCode];
-        if(_location != NULL)
-            if(_location->error_pages.find(_errorCode) != _location->error_pages.end())
-                _file = _location->error_pages[_errorCode];
-    }
     if(_errorCode == 0)
         _errorCode = 200;
     _statusCode = _errorCode;
@@ -83,6 +76,8 @@ void Client::sendResponse()
     {
         if (_isheadSend == false)
             sendHeaders(_socket);
+        else if (isBodyString == true)
+            sendBodyString(_socket);
         else
             sendBody(_socket);
     }

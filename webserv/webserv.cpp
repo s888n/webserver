@@ -59,9 +59,21 @@ void webserv::readFromClient(struct pollfd &pollfd)
 
     }catch(const char *e)
     {
+        std::string tmp;
         pollfd.events = POLLOUT;
         std::cout << e << std::endl;
         std::cout << "error code :" << client->getErrorCode() << std::endl;
+        client->_file = client->_pathFile;
+        std::cout << "file : " << client->_file << std::endl;
+        if(client->_server->error_pages.find(client->getErrorCode()) == client->_server->error_pages.end())
+        {
+            std::cout << "error page found" << std::endl;
+            if(client->_isError == true)
+                client->_file = "/";
+            client->isBodyString = true;
+        }
+        else
+            client->_file = client->_server->error_pages[client->getErrorCode()];
     }
 }
 
