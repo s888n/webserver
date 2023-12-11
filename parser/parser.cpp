@@ -577,8 +577,8 @@ std::pair<int ,std::string> parser::setLocationReturn(stringVector &values)
 {
     //return consists of 2 tokens a code and a path
     stringVector tokens = split(values[1], "=");
-    if (tokens.size() != 2)
-        throw std::runtime_error("Error: invalid return");
+    if (tokens.size() == 2)
+    {
     if (tokens[0].find_first_not_of("0123456789") != std::string::npos|| tokens[0].length() > 3)
         throw std::runtime_error("Error: invalid return");
     int code = std::atoi(tokens[0].c_str());
@@ -586,8 +586,27 @@ std::pair<int ,std::string> parser::setLocationReturn(stringVector &values)
         throw std::runtime_error("Error: invalid return");
     std::string path = tokens[1];
     trim(path, " \t\n\r");
-    std::pair <int,std::string>_return = std::make_pair(code,path);
-    return _return;
+    return std::make_pair(code,path);
+    }
+    else if (tokens.size() == 1)
+    {
+        if (tokens[0].find_first_not_of("0123456789") == std::string::npos && tokens[0].length() == 3)
+        {
+            int code = std::atoi(tokens[0].c_str());
+            if (code < 100 || code > 599)
+                throw std::runtime_error("Error: invalid return");
+            return std::make_pair(code,"");
+
+        }
+        else
+        {
+            std::string path = tokens[0];
+            trim(path, " \t\n\r");
+            return std::make_pair(-1,path);
+        }
+    }
+    else
+        throw std::runtime_error("Error: invalid return");
 }
 std::string parser::setLocationCompiler(stringVector &values)
 {
