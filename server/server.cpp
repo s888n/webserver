@@ -66,7 +66,11 @@ void server::createSocket(void)
     int opt = 1;
 
     fd = Socket(AF_INET, SOCK_STREAM, 0);
+<<<<<<< HEAD
     Fcntl(fd, F_SETFL, O_NONBLOCK); // f
+=======
+    Fcntl(fd, F_SETFL, O_NONBLOCK); // 
+>>>>>>> main
     if (fd < 0)
         throw std::runtime_error("Can't have a server without a socket :)");
     Setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
