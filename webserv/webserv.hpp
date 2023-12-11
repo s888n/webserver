@@ -48,7 +48,7 @@
 
 #include "../client/Client.hpp"
 
-#define TIMEOUT 1000
+#define TIMEOUT 10
 #define BUFFER_SIZE 1024
 
 class server;
@@ -70,6 +70,7 @@ class webserv
         Client *getClient(int fd);
         bool isServer(int fd);
         void closeClient(int fd);
+        void checkTimeout();
         void init();
         void run();
 };
