@@ -123,6 +123,7 @@ void webserv::run()
             else if (pollfds[i].revents & POLLOUT)
                 writeToClient(pollfds[i]);
         }
+        checkTimeout();
     }
 }
 
@@ -149,4 +150,16 @@ void webserv::closeClient(int fd)
             pollfds.erase(pollfds.begin() + i);
             break;
         }
+}
+
+void webserv::checkTimeout()
+{
+    for (size_t i = 0; i < clients.size(); i++)
+    {
+        if (getTime() - clients[i].timestamp > TIMEOUT)
+        {
+            closeClient(clients[i]._socket);
+            i--;
+        }
+    }
 }
