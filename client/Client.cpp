@@ -1,12 +1,16 @@
 #include "Client.hpp"
 
-Client::Client()
+Client::Client(): Request(), Response()
 {
     _isparsed = false;
+    _isReadBody = false;
+    _server = NULL;
+    _servers = NULL;
 }
 Client::~Client()
 {
-} 
+   
+}
 
 void Client::readRequest()
 {
@@ -18,23 +22,27 @@ void Client::readRequest()
 
 void Client::readheader()
 {
-    char *buffer = new char[1024];
+    char buffer[1024];
     int ret = 1;
-    if (!_headerIsSend)
+    if (!_headerIsRecv)
     {
         ret = recv(_socket, buffer, 1024, 0);
         if (ret <= 0)
-            return (delete[] buffer, void());
+            return ;
         _request.append(buffer, ret);
     }
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
+    std::cout << _request.substr(0, _request.find("\r\n\r\n") + 4) << std::endl;
+    _server = &findServer();
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
     checkRequest();
     uriToPath();
+    _headersRequest = _headers;
+    matchlocation();
+    _file = _pathFile;
     _isparsed = true;
-    delete[] buffer;
 }
 
 void Client::readbody()
@@ -50,12 +58,16 @@ void Client::readbody()
 
 void Client::sendResponse()
 {
+    signal(SIGPIPE, SIG_IGN);
     std::string *tmp = NULL;
     size_t pos = 0;
+    if(_errorCode == 0)
+        _errorCode = 200;
+    _statusCode = _errorCode;
     if ((tmp = getHeader("Range")))
     {
         std::stringstream ss;
-        tmp->substr(tmp->find("=") + 1);
+        *tmp =  tmp->substr(tmp->find("=") +  1);
         ss << *tmp;
         ss >> pos;
         sendRangeBody(_socket, pos);
@@ -64,7 +76,35 @@ void Client::sendResponse()
     {
         if (_isheadSend == false)
             sendHeaders(_socket);
+        else if (isBodyString == true)
+            sendBodyString(_socket);
         else
             sendBody(_socket);
     }
 }
+
+server& Client::findServer()
+{
+    std::vector<server*> tmpServer;
+    std::string tmp_host;
+    std::string tmp_port;
+    std::string *_host = getHeader("Host");
+    if(_host != NULL)
+    {
+        tmp_host = _host->substr(0, _host->find(":"));
+        tmp_port = _host->substr(_host->find(":") + 1);
+    }
+    for(size_t i = 0; i < _servers->size(); i++)
+        if(std::to_string(_servers->at(i).getPort()) == tmp_port || _servers->at(i).fd == serverFd)
+            tmpServer.push_back(&_servers->at(i));
+    for(size_t i = 0; i < tmpServer.size(); i++)
+        if(tmpServer[i]->getHost() == tmp_host)
+            return *tmpServer[i];
+    return *tmpServer[0];
+}
+
+bool Client::getIsParsed() const
+{
+    return _isparsed;
+}
+
