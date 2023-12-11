@@ -36,6 +36,7 @@ class Client : public Request, public Response
         void sendResponse();
         bool getIsParsed() const;
         void fillResponseMap();
+        bool checkReturn();
         ~Client();
 };
 

@@ -54,6 +54,7 @@ void webserv::readFromClient(struct pollfd &pollfd)
         if (client == NULL)
             return;
         client->readRequest();
+         
         if(client->getIsReadBody() == false && client->getIsParsed() == true)
             pollfd.events = POLLOUT;
 
@@ -61,13 +62,18 @@ void webserv::readFromClient(struct pollfd &pollfd)
     {
         std::string tmp;
         pollfd.events = POLLOUT;
-        std::cout << e << std::endl;
-        std::cout << "error code :" << client->getErrorCode() << std::endl;
         client->_file = client->_pathFile;
-        std::cout << "file : " << client->_file << std::endl;
-        if(client->_server->error_pages.find(client->getErrorCode()) == client->_server->error_pages.end())
+        client->_locationResponse = client->_location;
+        if(client->checkReturn() == true)
         {
-            std::cout << "error page found" << std::endl;
+            client->_file = "/";
+            client->isBodyString = true;
+            client->_bodyResponse = client->_body;
+            return;
+        }
+
+        if(client->_server->error_pages.find(client->getErrorCode()) == client->_server->error_pages.end() )
+        {
             if(client->_isError == true)
                 client->_file = "/";
             client->isBodyString = true;
@@ -108,8 +114,7 @@ void webserv::run()
 {
     while (true)
     {
-        if (!pollRevents())
-            continue;
+        pollRevents();
         for (size_t i = 0; i < pollfds.size(); i++)
         {
             //pollError(pollfds[i], i);
@@ -126,7 +131,6 @@ void webserv::run()
         checkTimeout();
     }
 }
-
 Client *webserv::getClient(int fd)
 {
     for (size_t i = 0; i < clients.size(); i++)
@@ -156,8 +160,11 @@ void webserv::checkTimeout()
 {
     for (size_t i = 0; i < clients.size(); i++)
     {
+        // std::cout << "timeout : " << getTime() - clients[i].timestamp  << std::endl;
         if (getTime() - clients[i].timestamp > TIMEOUT)
-        {
+        {   
+
+            std::cout << "<<<<<<<<timeout>>>>>>>>>>>>" << std::endl;
             closeClient(clients[i]._socket);
             i--;
         }

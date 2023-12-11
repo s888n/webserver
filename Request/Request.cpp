@@ -158,6 +158,8 @@ void Request::matchlocationForGET()
     _isReadBody = false;
     findlocation();
     if(_location->isReturn == true)
+        throw "return";
+    if(_location->isReturn == true)
         throw (_errorCode = 301,_isError = false ,"return");
     if(std::find(_location->methods.begin(), _location->methods.end(), "GET") == _location->methods.end())
         throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed

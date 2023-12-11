@@ -10,8 +10,6 @@ class Request
 {
     protected:
         std::map<std::string, std::string> _headers;
-        std::string _body;
-        location    *_location;
         std::string _boundry;
         bool        _headerIsRecv;
         bool        _isReadBody;
@@ -22,9 +20,12 @@ class Request
         size_t      _contentLength;
     public:
 
+        location    *_location;
         bool        _isError;
         std::string _pathFile;
         server      *_server;
+        std::string _body;
+        
         Request();
         void ParseRequest(std::string request);
         std::string *getHeader(std::string header);

@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <sstream>
+#include "../server/server.hpp"
 
 Response::Response()
 {
@@ -65,6 +66,7 @@ Response::Response()
     _isheadSend = false;
     _isBodyEnd = false;
     _isConnectionClose = false;
+    _locationResponse = NULL;
 }
 
 void Response::makeHeader(int status)
@@ -85,16 +87,16 @@ void Response::sendHeaders(int fd)
     stat(_file.c_str(), &filestat);
     fillResponseMap();
     fileSend.open(_file, std::ios::in | std::ios::binary);
-    std::cout << "file : >>>>>>>>>>>>" << _file << std::endl;
+    // std::cout << "file : >>>>>>>>>>>>" << _file << std::endl;
     if(!S_ISREG(filestat.st_mode))
     {
-        std::cout << "<<<<<<<<<<<<<<<<,make body >>>>>>>>>>>" << std::endl;
+        // std::cout << "<<<<<<<<<<<<<<<<,make body >>>>>>>>>>>" << std::endl;
         makeBody();
     }
     if(fileSend.is_open())
         createLengthHeader();
     makeHeader(_statusCode);
-    std::cout << _header << std::endl;
+    // std::cout << _header << std::endl;
     ret = send(fd,_header.c_str(),_header.size(),0);
     if(ret <= 0)
         return;
@@ -124,7 +126,7 @@ void Response::sendBody(int fd)
     ret = send(fd,buffer,ret,0);
     if(ret <= 0)
     {
-        std::cout << "ret2 : " << ret << std::endl;
+        // std::cout << "ret2 : " << ret << std::endl;
         delete[] buffer;
         fileSend.close();
         _isBodyEnd = true;
@@ -206,6 +208,7 @@ Response& Response::operator=(Response const &main)
         _isBodyEnd = main._isBodyEnd;
         _isConnectionClose = main._isConnectionClose;
         _bodyResponse = main._bodyResponse;
+        _locationResponse = main._locationResponse;
     }
     return *this;
 }
@@ -248,7 +251,7 @@ void Response::createLengthHeader()
     if(_bodyResponse.size() > 0)
     {
         _headersResponse["Content-Length"] = std::to_string(_bodyResponse.size());
-        std::cout << "body size : >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << _bodyResponse.size() << std::endl;
+        // std::cout << "body size : >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << _bodyResponse.size() << std::endl;
     }
     else if(_headersRequest.find("Range") != _headersRequest.end())
     {
@@ -304,10 +307,12 @@ void Response::makeBody()
     struct stat filestat;
     struct dirent *en;
     //std::string tmp = _headersRequest["Path"].substr(0, _headersRequest["Path"].find_last_of('/') + 1);
+    if(_bodyResponse.size() > 0)
+        return;
     if(_headersRequest["Path"].back() != '/')
         _headersRequest["Path"] += "/";
     stat(_file.c_str(), &filestat);
-    if (_statusCode == 200 && S_ISDIR(filestat.st_mode))
+    if (_statusCode == 200 && S_ISDIR(filestat.st_mode) && _locationResponse->isReturn   == false)              
     {
         DIR *dir = opendir(_file.c_str());
         _bodyResponse  = "<html>\n<head>\n<title>Index of " + _headersRequest["Path"] + "</title>\n</head>\n<body>\n<h1>Index of " + _headersRequest["Path"] + "</h1>\n";
