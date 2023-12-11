@@ -218,7 +218,7 @@ server parser::parseServer(std::string &sb)
     server server = getServer(split(serverBlock, ";"));
     parseLocationBlocks(lbs, server);
     setDefaultLocation(server);
-    //printServer(server);
+    // printServer(server);
     return server;
 }
 
@@ -301,6 +301,9 @@ std::vector<std::string> parser::setIndexes(stringVector &values)
     if(values.size() == 1)
         throw std::runtime_error("Error: invalid indexes");
     stringVector tokens = split(values[1], ",");
+    //if there is no index.html add it
+    if(std::find(tokens.begin(), tokens.end(), "index.html") == tokens.end())
+        tokens.push_back("index.html");
     return tokens;
 }
 

@@ -84,13 +84,17 @@ void Response::sendHeaders(int fd)
     struct stat filestat;
     stat(_file.c_str(), &filestat);
     fillResponseMap();
-    fileSend.open(_file, std::ios::in);
+    fileSend.open(_file, std::ios::in | std::ios::binary);
+    std::cout << "file : >>>>>>>>>>>>" << _file << std::endl;
     if(!S_ISREG(filestat.st_mode))
+    {
+        std::cout << "<<<<<<<<<<<<<<<<,make body >>>>>>>>>>>" << std::endl;
         makeBody();
+    }
     if(fileSend.is_open())
         createLengthHeader();
     makeHeader(_statusCode);
-    // std::cout << _header << std::endl;
+    std::cout << _header << std::endl;
     ret = send(fd,_header.c_str(),_header.size(),0);
     if(ret <= 0)
         return;
@@ -107,11 +111,10 @@ void Response::sendBody(int fd)
 {
     char *buffer = new char[10240];
     int ret;
-    fileSend.read(buffer, 3600);
+    fileSend.read(buffer, 10240);
     ret = fileSend.gcount();
-    if(ret <=  0)
+    if(ret <=  0 )
     {
-        //std::cout << "ret1 : " << ret << std::endl;
         delete[] buffer;
         fileSend.close();
         
@@ -121,7 +124,7 @@ void Response::sendBody(int fd)
     ret = send(fd,buffer,ret,0);
     if(ret <= 0)
     {
-         std::cout << "ret2 : " << ret << std::endl;
+        std::cout << "ret2 : " << ret << std::endl;
         delete[] buffer;
         fileSend.close();
         _isBodyEnd = true;
@@ -137,11 +140,11 @@ bool Response::getIsheadSend() const
 
 void Response::sendRangeBody(int fd ,size_t start)
 {
-    char *buffer = new char[10240];
+    char *buffer = new char[102400];
     int ret;
     struct stat filestat;
     stat(_file.c_str(), &filestat);
-    fileSend.open(_file, std::ios::in);
+    fileSend.open(_file, std::ios::in | std::ios::binary);
     if(!fileSend.is_open())
     {
         delete[] buffer;
@@ -149,30 +152,27 @@ void Response::sendRangeBody(int fd ,size_t start)
         return;
     }
     fileSend.seekg(start);
-    fileSend.read(buffer, 10240);
+    fileSend.read(buffer, 102400);
     ret = fileSend.gcount();
     if(ret <=  0)
     {
         delete[] buffer;
         fileSend.close();
+         _isBodyEnd = true;
         return;
     }
     _header = "HTTP/1.1 206 Partial Content\r\n";
-    _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(start + ret) + "/" + std::to_string(filestat.st_size) + "\r\n";
-    _header += "Content-Length: " + std::to_string(ret) + "\r\n";
+    size_t pos = start + ret;
+    if(pos >= static_cast<size_t>(filestat.st_size))
+        pos = filestat.st_size - 1;
     _header += "Content-Type: video/mp4\r\n";
     _header += "Accept-Ranges: bytes\r\n";
     _header += "Connection: keep-alive\r\n"; 
+    _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(pos) + "/" + std::to_string(filestat.st_size) + "\r\n";
+    _header += "Content-Length: " + std::to_string(ret) + "\r\n";
     _header += "\r\n";
     _header.append(buffer, ret);
     ret = send(fd,_header.c_str(),_header.size(),0);
-    if(ret <= 0)
-    {
-        delete[] buffer;
-        _isBodyEnd = true;
-        fileSend.close();
-        return;
-    }
     delete[] buffer;
     fileSend.close();
     _isBodyEnd = true;
@@ -213,8 +213,6 @@ Response& Response::operator=(Response const &main)
 
 void Response::fillResponseMap()
 {
-    // std::cout << "extension : " << _file.substr(_file.find_last_of('.')) << std::endl;
-    //print MimeType
     _headersResponse["Content-Type"] = "text/html";  
     if(_file.find_last_of('.') != std::string::npos)
     {
@@ -248,7 +246,10 @@ void Response::createLengthHeader()
     struct stat filestat;
     stat(_file.c_str(), &filestat);
     if(_bodyResponse.size() > 0)
+    {
         _headersResponse["Content-Length"] = std::to_string(_bodyResponse.size());
+        std::cout << "body size : >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << _bodyResponse.size() << std::endl;
+    }
     else if(_headersRequest.find("Range") != _headersRequest.end())
     {
         std::string tmp = _headersRequest["Range"];
@@ -275,7 +276,6 @@ bool Response::getIsConnectionClose() const
  {
         int ret;
         std::string tmp;
-        // std::cout << "hamza now is here "   << std::endl;
         if(_bodyResponse.size() > 1024)
         {
             tmp = _bodyResponse.substr(0,1024);
@@ -315,7 +315,7 @@ void Response::makeBody()
         {
             if(std::string(en->d_name).front() == '.')
                 continue;
-            _bodyResponse += "<a href=\"" + _headersRequest["Path"] + std::string(en->d_name) + "\">" + std::string(en->d_name) + "</a><br>";
+            _bodyResponse += "<a href=\"." + _headersRequest["Path"] + std::string(en->d_name) + "\">" + std::string(en->d_name) + "</a><br>";
         }
         _bodyResponse += "</body>\n</html>";
         closedir(dir);

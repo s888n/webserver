@@ -67,15 +67,15 @@ void server::createSocket(void)
 
     fd = Socket(AF_INET, SOCK_STREAM, 0);
     Fcntl(fd, F_SETFL, O_NONBLOCK); // f
+    if (fd < 0)
+        throw std::runtime_error("Can't have a server without a socket :)");
     Setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     std::memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = INADDR_ANY;
-
+    addr.sin_addr.s_addr = inet_addr(host.c_str());
     Bind(fd, (struct sockaddr *)&addr, sizeof(addr));
-
     Listen(fd, SOMAXCONN);
 
 }
