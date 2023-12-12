@@ -254,7 +254,9 @@ void Client::parseMultipartData()
 }
 
 void Client::parseBinaryData()
+
 {
+    std::cout << "parse Binary" << std::endl;
     std::string path = _location->root;
     filename = generateRandomString();
     if(path.back() != '/')
