@@ -26,7 +26,8 @@ class Client : public Request, public Response
         socklen_t addrlen;
         int serverFd;
         bool isBodyString;
-
+        std::string filename;
+        std::string boundary;
         Client();
         void readRequest();
         void readheader();
@@ -36,6 +37,14 @@ class Client : public Request, public Response
         bool getIsParsed() const;
         void fillResponseMap();
         bool checkReturn();
+        void parseRequestBody();
+        void createFile(std::string path);
+        void parseMultipartData();
+        void parseBinaryData();
+        void parseChunkedData();
+        std::string unchunk(std::string &chunked);
+        std::string generateRandomString();
+
         ~Client();
 };
 

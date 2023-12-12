@@ -290,7 +290,10 @@ void Request::readBoundry(int fd)
         _body.append(buffer, ret);
         _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
         if(_body.find("--"+_boundry +"--") != std::string::npos)
+        {
+            std::cout << "end" << std::endl;
             isBodyEnd = true;
+        }
     }
 
 }
