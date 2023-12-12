@@ -218,7 +218,7 @@ server parser::parseServer(std::string &sb)
     server server = getServer(split(serverBlock, ";"));
     parseLocationBlocks(lbs, server);
     setDefaultLocation(server);
-    printServer(server);
+    // printServer(server);
     return server;
 }
 
@@ -401,8 +401,6 @@ void parser::setServerDefaultValues(server &server,stringVector values)
             server.methods.push_back("GET");
         if (!directiveExists("server_names", values)&& server.server_names.size() == 0)
             server.server_names.push_back("localhost");
-        if (!directiveExists("error_pages", values))
-            server.error_pages[404] = "error.html";
         if (!directiveExists("autoindex", values))
             server.autoindex = false;
         if (!directiveExists("max_body_size", values))

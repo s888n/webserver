@@ -6,6 +6,8 @@
 #include <iostream>
 #include <fstream>
 #include <sys/socket.h>
+
+class location;
 class Response
 {
     protected:
@@ -20,9 +22,10 @@ class Response
         bool            _isheadSend;
         bool           _isBodyEnd;
         bool            _isConnectionClose;
-        std::string     _bodyResponse;
 
     public:
+        location        *_locationResponse;
+        std::string     _bodyResponse;
         std::string     _file;
         Response();
         Response(Response const &main);

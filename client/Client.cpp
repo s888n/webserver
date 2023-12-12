@@ -31,29 +31,40 @@ void Client::readheader()
             return ;
         _request.append(buffer, ret);
     }
+    timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
+    std::cout << _request << std::endl;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
-    std::cout << _request.substr(0, _request.find("\r\n\r\n") + 4) << std::endl;
     _server = &findServer();
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
     checkRequest();
     uriToPath();
     _headersRequest = _headers;
     matchlocation();
+    if(getHeader("Content-Length") != NULL)
+    {
+        std::stringstream ss;
+        ss << getHeader("Content-Length")->c_str();
+        ss >> _contentLength;
+    }
     _file = _pathFile;
     _isparsed = true;
 }
 
 void Client::readbody()
 {
-    char *buffer = new char[1024];
-    int ret = 1;
-    ret = recv(_socket, buffer, 1024, 0);
-    if (ret <= 0)
-        return (delete[] buffer, void());
-    _body.append(buffer, ret);
-    delete[] buffer;
+    if(isBodyEnd == false)
+    {
+        if(getHeader("Transfer-Encoding") != NULL)
+                readChunked(_socket);
+        else if(getHeader("Content-Type") != NULL && getHeader("Content-Type")->find("boundary=") != std::string::npos)
+            readBoundry(_socket);
+        else
+            readContentLength(_socket);
+    }else
+        
+    
 }
 
 void Client::sendResponse()
@@ -70,6 +81,7 @@ void Client::sendResponse()
         *tmp =  tmp->substr(tmp->find("=") +  1);
         ss << *tmp;
         ss >> pos;
+        std::cout << "start pos : " << pos << std::endl;
         sendRangeBody(_socket, pos);
     }
     else
@@ -80,7 +92,9 @@ void Client::sendResponse()
             sendBodyString(_socket);
         else
             sendBody(_socket);
+        
     }
+    timestamp = time(NULL);
 }
 
 server& Client::findServer()
@@ -98,8 +112,9 @@ server& Client::findServer()
         if(std::to_string(_servers->at(i).getPort()) == tmp_port || _servers->at(i).fd == serverFd)
             tmpServer.push_back(&_servers->at(i));
     for(size_t i = 0; i < tmpServer.size(); i++)
-        if(tmpServer[i]->getHost() == tmp_host)
-            return *tmpServer[i];
+        for(size_t j = 0; j < tmpServer[i]->getServerNames().size(); j++)
+            if(tmpServer[i]->getServerNames()[j] == tmp_host)
+                return *tmpServer[i];
     return *tmpServer[0];
 }
 
@@ -108,3 +123,42 @@ bool Client::getIsParsed() const
     return _isparsed;
 }
 
+
+ bool Client::checkReturn()
+ {
+    std::vector<int> numbers;
+    std::string tmp;
+    numbers.push_back(301), numbers.push_back(302), numbers.push_back(303);
+    if( _location == NULL ||_location->isReturn == false)
+        return false;
+    if(_location->_return.first != -1 && _location->_return.second != "")
+    {
+        if(std::find(numbers.begin(), numbers.end(), _location->_return.first) != numbers.end())
+        {
+                _errorCode = _location->_return.first;
+            if(_location->_return.second.front() == '/' && _headers.find("Host") != _headers.end())
+            {
+                _headersResponse["Location"] = "http://"+_headers["Host"]  + _location->_return.second;
+            }
+            else
+            {
+                _headersResponse["Location"] = _location->_return.second;
+
+            }
+        }else
+        {
+            _errorCode = _location->_return.first;
+            _body = _location->_return.second;
+        }
+    }
+    else if(_location->_return.first != -1 && _location->_return.second == "")
+    {
+        _errorCode = _location->_return.first;
+    }
+    else if(_location->_return.first == -1 && _location->_return.second != "")
+    {
+        _headersResponse["Location"] = _location->_return.second;
+        _errorCode = 301;
+    }
+    return true;
+ }
