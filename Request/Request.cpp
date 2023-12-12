@@ -248,7 +248,33 @@ void Request::matchlocationForPOST()
         if(tmp > _location->max_body_size)
             throw (_errorCode = 411,_isError =true ,"method error"); // Length Required
     }
+    tryfilePost();
     _isReadBody = true;
+}
+
+
+void Request::tryfilePost()
+{
+    struct stat     _stat;
+    std::string     tmp;
+
+    tmp = _location->root;
+    if(tmp.back() == '/')
+        tmp = tmp.substr(0, tmp.length() - 1);
+    tmp = tmp + _headers["Path"];
+    stat(tmp.c_str(), &_stat);
+    if(S_ISDIR(_stat.st_mode))
+        return (_pathFile = tmp,void());
+    else if(S_ISREG(_stat.st_mode))
+        throw (_errorCode = 409,_isError =true ,"method error");
+    else
+    {
+        stat(tmp.substr(0,tmp.find_last_of('/')).c_str(), &_stat);
+        if(S_ISDIR(_stat.st_mode))
+            return (_pathFile = tmp,void());
+        else
+            throw (_errorCode = 404,_isError =true ,"method error");
+    }
 }
 
 void Request::matchlocationForDELETE()

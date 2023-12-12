@@ -57,6 +57,7 @@ class Request
         int getErrorCode();
         bool getIsheaderIsRecv();
         ~Request();
+        void tryfilePost();
 };
 
 #endif
