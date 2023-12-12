@@ -273,7 +273,6 @@ std::string Client::unchunk(std::string &chunked)
 
 void Client::parseChunkedData()
 {
-    std::cout << "parse chnked" << std::endl;
     std::string path;
     _body = unchunk (_body);
     struct stat filehelp;
@@ -288,7 +287,6 @@ void Client::parseChunkedData()
     }
     else
         path = _pathFile; 
-    std::cout << "path : " << path << std::endl;
     createFile (path);
     throw (_errorCode = 201,_isError = true,"unchunked");
 }
