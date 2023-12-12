@@ -190,6 +190,10 @@ void Client::parseRequestBody()
 void Client::createFile(std::string path)
 {
     std::ofstream file;
+    struct stat filehelp;
+    stat(path.c_str(), &filehelp);
+    if (S_ISREG(filehelp.st_mode))
+        throw (_errorCode = 409, "file already exist");
     file.open(path.c_str(), std::ios::binary);
     if(!file.is_open())
         throw (_errorCode = 501, "file open error");
@@ -219,24 +223,33 @@ void Client::parseMultipartData()
 {
     std::string midBoundary = "--"  + _boundry + "\r\n";
     std::string endBoundary = "--"  + _boundry + "--\r\n";
-    std::string tmp = _body.substr(0, _body.find("\r\n\r\n"));
-    _body.erase(0, _body.find("\r\n\r\n") + 4);
-
-    filename = tmp.substr(tmp.find("filename=") + 10);
-    filename = filename.substr(0, filename.find("\""));
-    std::string path = _location->root;
-    if(path.back() != '/')
-        path += "/";
-    path += filename;
-
-    while (_body.find(_boundry) != std::string::npos)
+    std::string help;
+    while(_body.size() > 0 )
     {
+        std::string tmp = _body.substr(0, _body.find("\r\n\r\n"));
+        _body.erase(0, _body.find("\r\n\r\n") + 4);
+
+        filename = tmp.substr(tmp.find("filename=") + 10);
+        filename = filename.substr(0, filename.find("\""));
+        std::string path = _location->root;
+        if(path.back() != '/')
+            path += "/";
+        path += filename;
         if(_body.find(midBoundary) != std::string::npos)
-            _body.erase( _body.find(midBoundary) , midBoundary.length());
+        {
+            help = _body.substr(_body.find(midBoundary));
+            _body = _body.substr(0, _body.find(midBoundary));
+            createFile(path);
+            _body = help;
+        }
         else if(_body.find(endBoundary) != std::string::npos)
-            _body.erase( _body.find(endBoundary) , endBoundary.length());
+        {
+            help = _body.substr(_body.find(endBoundary));
+            _body = _body.substr(0, _body.find(endBoundary));
+            createFile(path);
+            _body = "";
+        }
     }
-    createFile(path);
     throw (_errorCode = 201,_isError = true,"good shit");
 }
 
