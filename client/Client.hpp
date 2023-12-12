@@ -24,7 +24,6 @@ class Client : public Request, public Response
         int _socket;
         struct sockaddr_in addr;
         socklen_t addrlen;
-        time_t timestamp;
         int serverFd;
         bool isBodyString;
 

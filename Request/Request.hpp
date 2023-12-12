@@ -25,8 +25,10 @@ class Request
         std::string _pathFile;
         server      *_server;
         std::string _body;
+        bool isBodyEnd;
         
         Request();
+        time_t timestamp;
         void ParseRequest(std::string request);
         std::string *getHeader(std::string header);
         void checkRequest();
@@ -37,9 +39,10 @@ class Request
         void matchlocation();
 
         void parseBody();
-        void readBoundry();
+        void readBoundry(int fd);
         void readBoundrywithChunked(); 
-        void readChunked();
+        void readChunked(int fd);
+        void  readContentLength(int fd);
 
 
         void findlocation();

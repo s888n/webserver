@@ -145,6 +145,7 @@ void Request::uriToPath()
 
 void Request::matchlocation()
 {
+    findlocation();
     if(_headers["Method"] == "GET")
         matchlocationForGET();
     else if(_headers["Method"] == "POST")
@@ -156,11 +157,8 @@ void Request::matchlocation()
 void Request::matchlocationForGET()
 {
     _isReadBody = false;
-    findlocation();
     if(_location->isReturn == true)
         throw "return";
-    if(_location->isReturn == true)
-        throw (_errorCode = 301,_isError = false ,"return");
     if(std::find(_location->methods.begin(), _location->methods.end(), "GET") == _location->methods.end())
         throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
     tryFiles();
@@ -237,7 +235,20 @@ void Request::findlocation()
 
 void Request::matchlocationForPOST()
 {
-
+    std::stringstream ss;
+    size_t tmp;
+    if(_location->isReturn == true)
+        throw "return";
+    if(std::find(_location->methods.begin(), _location->methods.end(), "POST") == _location->methods.end())
+        throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
+    if(_headers.find("Content-Length") != _headers.end())
+    {
+        ss << _headers["Content-Length"];
+        ss >> tmp;
+        if(tmp > _location->max_body_size)
+            throw (_errorCode = 411,_isError =true ,"method error"); // Length Required
+    }
+    _isReadBody = true;
 }
 
 void Request::matchlocationForDELETE()
@@ -268,8 +279,19 @@ void Request::parseBody()
     // }
 }
 
-void Request::readBoundry()
+void Request::readBoundry(int fd)
 {
+    char buffer[3040];
+    int ret = 1;
+    ret = recv(fd, buffer, 3040, 0);
+    if(ret > 0)
+    {
+        timestamp = time(NULL);
+        _body.append(buffer, ret);
+        _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
+        if(_body.find("--"+_boundry +"--") != std::string::npos)
+            isBodyEnd = true;
+    }
 
 }
 
@@ -279,9 +301,34 @@ void Request::readBoundrywithChunked()
 }
 
 
-void Request::readChunked()
+void Request::readChunked(int fd)
 {
+    char buffer[3040];
+    int ret = 1;
+    ret = recv(fd, buffer, 3040, 0);
+    if(ret > 0)
+    {
+    timestamp = time(NULL);
+    _body.append(buffer, ret);
+    if(_body.find("0\r\n\r\n") != std::string::npos)
+        isBodyEnd = true;
+    }
+}
+void  Request::readContentLength(int fd)
+{
+    char buffer[3040];
+    int ret = 1;
+    ret = recv(fd, buffer, 3040, 0);
+    if(ret > 0)
+    {
+        timestamp = time(NULL);
+        _body.append(buffer, ret);
+        if(_body.length() == _contentLength)
+            isBodyEnd = true;
+        else if(_body.length() > _contentLength || _contentLength > _location->max_body_size)
+            throw (_errorCode = 413 ,"return"); // Request Entity Too Large
 
+    }
 }
 
 

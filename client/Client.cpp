@@ -34,6 +34,7 @@ void Client::readheader()
     timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
+    std::cout << _request << std::endl;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
     _server = &findServer();
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
@@ -41,19 +42,29 @@ void Client::readheader()
     uriToPath();
     _headersRequest = _headers;
     matchlocation();
+    if(getHeader("Content-Length") != NULL)
+    {
+        std::stringstream ss;
+        ss << getHeader("Content-Length")->c_str();
+        ss >> _contentLength;
+    }
     _file = _pathFile;
     _isparsed = true;
 }
 
 void Client::readbody()
 {
-    char *buffer = new char[1024];
-    int ret = 1;
-    ret = recv(_socket, buffer, 1024, 0);
-    if (ret <= 0)
-        return (delete[] buffer, void());
-    _body.append(buffer, ret);
-    delete[] buffer;
+    if(isBodyEnd == false)
+    {
+        if(getHeader("Transfer-Encoding") != NULL)
+                readChunked(_socket);
+        else if(getHeader("Content-Type") != NULL && getHeader("Content-Type")->find("boundary=") != std::string::npos)
+            readBoundry(_socket);
+        else
+            readContentLength(_socket);
+    }else
+        
+    
 }
 
 void Client::sendResponse()
