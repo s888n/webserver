@@ -281,16 +281,13 @@ void Client::parseChunkedData()
     if (S_ISDIR(filehelp.st_mode))  
     {
         path = _pathFile ;
+        if (path.back() != '/')
+            path += '/';
         filename = generateRandomString();
+        path += filename;
     }
     else
-    {
-        path = _location->root;
-        filename = generateRandomString(); 
-    }
-    if(path.back() != '/')
-        path += '/';
-    path += filename;
+        path = _pathFile; 
     std::cout << "path : " << path << std::endl;
     createFile (path);
     throw (_errorCode = 201,_isError = true,"unchunked");
