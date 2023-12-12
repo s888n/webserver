@@ -112,13 +112,12 @@ void Response::sendHeaders(int fd)
 
 void Response::sendBody(int fd)
 {
-    char *buffer = new char[10240];
+    char buffer[10240];
     int ret;
     fileSend.read(buffer, 10240);
     ret = fileSend.gcount();
     if(ret <=  0 )
     {
-        delete[] buffer;
         fileSend.close();
         
         _isBodyEnd = true;
@@ -128,7 +127,6 @@ void Response::sendBody(int fd)
     if(ret <= 0)
     {
         // std::cout << "ret2 : " << ret << std::endl;
-        delete[] buffer;
         fileSend.close();
         _isBodyEnd = true;
         _isConnectionClose = true;
@@ -143,14 +141,13 @@ bool Response::getIsheadSend() const
 
 void Response::sendRangeBody(int fd ,size_t start)
 {
-    char *buffer = new char[102400];
+    char buffer[102400];
     int ret;
     struct stat filestat;
     stat(_file.c_str(), &filestat);
     fileSend.open(_file, std::ios::in | std::ios::binary);
     if(!fileSend.is_open())
     {
-        delete[] buffer;
         _isBodyEnd = true;
         return;
     }
@@ -159,7 +156,6 @@ void Response::sendRangeBody(int fd ,size_t start)
     ret = fileSend.gcount();
     if(ret <=  0)
     {
-        delete[] buffer;
         fileSend.close();
          _isBodyEnd = true;
         return;
@@ -176,7 +172,6 @@ void Response::sendRangeBody(int fd ,size_t start)
     _header += "\r\n";
     _header.append(buffer, ret);
     ret = send(fd,_header.c_str(),_header.size(),0);
-    delete[] buffer;
     fileSend.close();
     _isBodyEnd = true;
 }
