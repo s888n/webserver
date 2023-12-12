@@ -61,13 +61,13 @@ void webserv::readFromClient(struct pollfd &pollfd)
     {
         std::string tmp;
         pollfd.events = POLLOUT;
-        std::cout << e << std::endl;
-        std::cout << "error code :" << client->getErrorCode() << std::endl;
+        //std::cout << e << std::endl;
+        //std::cout << "error code :" << client->getErrorCode() << std::endl;
         client->_file = client->_pathFile;
-        std::cout << "file : " << client->_file << std::endl;
+        //std::cout << "file : " << client->_file << std::endl;
         if(client->_server->error_pages.find(client->getErrorCode()) == client->_server->error_pages.end())
         {
-            std::cout << "error page found" << std::endl;
+            //std::cout << "error page found" << std::endl;
             if(client->_isError == true)
                 client->_file = "/";
             client->isBodyString = true;
@@ -156,8 +156,10 @@ void webserv::checkTimeout()
 {
     for (size_t i = 0; i < clients.size(); i++)
     {
+        //std::cout << "check timeout" << std::endl;
         if (getTime() - clients[i].timestamp > TIMEOUT)
         {
+            std::cout << "timeout" << std::endl;
             closeClient(clients[i]._socket);
             i--;
         }

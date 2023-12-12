@@ -121,7 +121,7 @@ void Response::sendBody(int fd)
     ret = send(fd,buffer,ret,0);
     if(ret <= 0)
     {
-         std::cout << "ret2 : " << ret << std::endl;
+        //std::cout << "ret2 : " << ret << std::endl;
         delete[] buffer;
         fileSend.close();
         _isBodyEnd = true;

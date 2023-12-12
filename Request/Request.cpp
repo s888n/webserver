@@ -71,7 +71,7 @@ bool Request::checkUri()
     std::string validChar = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%";
     std::string tmp;
     tmp = _headers["Uri"];
-    std::cout << tmp << std::endl;
+    //std::cout << tmp << std::endl;
     if(tmp.length() > 2048)
         return (_errorCode = 414 ,false); // Request-URI Too Long
     if(tmp.front() != '/')
@@ -141,7 +141,7 @@ void Request::uriToPath()
         }
     }
     _headers["Path"] = tmp;
-    std::cout << "::::::::::::path : " << tmp << std::endl;
+    //std::cout << "::::::::::::path : " << tmp << std::endl;
 }
 
 
@@ -206,7 +206,7 @@ void Request::tryFiles()
         _pathFile = tmp;
         return;
     }
-    std::cout << "error hamza" << std::endl;
+    //std::cout << "error hamza" << std::endl;
     throw (_errorCode = 404,_isError =true ,"method error");
 }
 

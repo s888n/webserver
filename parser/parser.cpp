@@ -218,7 +218,7 @@ server parser::parseServer(std::string &sb)
     server server = getServer(split(serverBlock, ";"));
     parseLocationBlocks(lbs, server);
     setDefaultLocation(server);
-    printServer(server);
+    //printServer(server);
     return server;
 }
 

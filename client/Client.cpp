@@ -30,11 +30,12 @@ void Client::readheader()
         if (ret <= 0)
             return ;
         _request.append(buffer, ret);
+        timestamp = getTime();
     }
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
-    std::cout << _request.substr(0, _request.find("\r\n\r\n") + 4) << std::endl;
+    //std::cout << _request.substr(0, _request.find("\r\n\r\n") + 4) << std::endl;
     _server = &findServer();
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
     checkRequest();
@@ -53,6 +54,7 @@ void Client::readbody()
     if (ret <= 0)
         return (delete[] buffer, void());
     _body.append(buffer, ret);
+    timestamp = getTime();
     delete[] buffer;
 }
 
@@ -80,6 +82,7 @@ void Client::sendResponse()
             sendBodyString(_socket);
         else
             sendBody(_socket);
+        timestamp = getTime();
     }
 }
 
