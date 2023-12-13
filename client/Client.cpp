@@ -192,6 +192,10 @@ void Client::parseRequestBody()
 void Client::createFile(std::string path)
 {
     std::ofstream file;
+    struct stat  s;
+    //if the file already exists, return ;
+    if(stat(path.c_str(), &s) == 0)
+        return ;
     file.open(path.c_str(), std::ios::binary);
     if(!file.is_open())
         throw (_errorCode = 501, "file open error");
@@ -217,30 +221,30 @@ std::string Client::generateRandomString ()
     return str;
 }
 
-void Client::parseMultipartData()
-{
-    std::string midBoundary = "--"  + _boundry + "\r\n";
-    std::string endBoundary = "--"  + _boundry + "--\r\n";
-    std::string tmp = _body.substr(0, _body.find("\r\n\r\n"));
-    _body.erase(0, _body.find("\r\n\r\n") + 4);
+// void Client::parseMultipartData2()
+// {
+//     std::string midBoundary = "--"  + _boundry + "\r\n";
+//     std::string endBoundary = "--"  + _boundry + "--\r\n";
+//     std::string tmp = _body.substr(0, _body.find("\r\n\r\n"));
+//     _body.erase(0, _body.find("\r\n\r\n") + 4);
 
-    filename = tmp.substr(tmp.find("filename=") + 10);
-    filename = filename.substr(0, filename.find("\""));
-    std::string path = _location->root;
-    if(path.back() != '/')
-        path += "/";
-    path += filename;
+//     filename = tmp.substr(tmp.find("filename=") + 10);
+//     filename = filename.substr(0, filename.find("\""));
+//     std::string path = _location->root;
+//     if(path.back() != '/')
+//         path += "/";
+//     path += filename;
 
-    while (_body.find(_boundry) != std::string::npos)
-    {
-        if(_body.find(midBoundary) != std::string::npos)
-            _body.erase( _body.find(midBoundary) , midBoundary.length());
-        else if(_body.find(endBoundary) != std::string::npos)
-            _body.erase( _body.find(endBoundary) , endBoundary.length());
-    }
-    createFile(path);
-    throw (_errorCode = 201,_isError = true,"good shit");
-}
+//     while (_body.find(_boundry) != std::string::npos)
+//     {
+//         if(_body.find(midBoundary) != std::string::npos)
+//             _body.erase( _body.find(midBoundary) , midBoundary.length());
+//         else if(_body.find(endBoundary) != std::string::npos)
+//             _body.erase( _body.find(endBoundary) , endBoundary.length());
+//     }
+//     createFile(path);
+//     throw (_errorCode = 201,_isError = true,"good shit");
+// }
 
 void Client::parseBinaryData()
 {
@@ -295,4 +299,99 @@ void Client::parseChunkedData()
     std::cout << "path : " << path << std::endl;
     createFile (path);
     throw (_errorCode = 201,_isError = true,"unchunked");
+}
+size_t Client::fileCount()
+{
+    size_t count = 0;
+    size_t pos = 0;
+    while ((pos = _body.find(_boundry, pos)) != std::string::npos)
+    {
+        count++;
+        pos += _boundry.length();
+    }
+    return count;
+}
+
+std::string Client::getFileName(std::string fileHeader)
+{
+    std::string filename = "";
+    std::string extension;
+    std::string content_type;
+    size_t pos = 0;
+    if ((pos = fileHeader.find("Content-Type: ")) != std::string::npos)
+    {
+        pos += 14;
+        content_type = fileHeader.substr(pos, fileHeader.find("\r\n", pos) - pos);
+        if ((pos = content_type.find("/")) != std::string::npos)
+            extension = "." + content_type.substr(pos + 1);
+        else
+            extension = ".txt";
+        
+    }
+    else
+        extension = ".txt";
+
+    if ((pos = fileHeader.find("filename=")) != std::string::npos)
+    {
+        filename = fileHeader.substr(pos + 10);
+        filename = filename.substr(0, filename.find("\""));
+    }
+    else if ((pos = fileHeader.find("name=")) != std::string::npos && fileHeader.find("filename=") == std::string::npos)
+    {
+        filename = fileHeader.substr(pos + 6);
+        filename = filename.substr(0, filename.find("\""));
+        if (filename == "")
+            filename = generateRandomString();
+        filename += extension;
+
+    }
+    else
+        filename = generateRandomString() + extension;
+
+    if(_pathFile.back() != '/')
+        filename = _pathFile + "/" + filename;
+    else
+        filename = _pathFile + filename;
+
+    return filename;
+}
+
+void Client::parseMultipartData()
+{
+    size_t count = fileCount();
+    std::string name;
+    std::string midBoundary = "--"  + _boundry + "\r\n";
+    std::string endBoundary = "--"  + _boundry + "--\r\n";
+    std::string fileContent;
+    for (size_t i = 0; i < count; i++) 
+    {
+        name = getFileName(_body.substr(0, _body.find("\r\n\r\n")));
+        _body.erase(0, _body.find("\r\n\r\n") + 4);
+        if (_body.find(midBoundary) != std::string::npos)
+        {
+            fileContent = _body.substr(0, _body.find(midBoundary));
+            _body.erase( 0 , _body.find(midBoundary) + midBoundary.length());
+        }
+        else if (_body.find(endBoundary) != std::string::npos)
+        {
+            fileContent = _body.substr(0, _body.find(endBoundary));
+            _body.erase( 0 , _body.find(endBoundary) + endBoundary.length());
+        }
+        createFile(name,fileContent);
+    }
+    throw (_errorCode = 201,_isError = true,"good shit");
+}
+void Client::createFile (std::string name, std::string &fileContent)
+{
+    struct stat buffer;
+    if (stat(name.c_str(), &buffer) == 0)
+        return;
+    std::ofstream outfile(name.c_str());
+    std::cout << "Writing to file: " << name << std::endl;
+    if (!outfile.is_open())
+        throw std::runtime_error("Could not open file to write");
+
+    outfile << fileContent;
+    outfile.close();
+
 }
