@@ -65,7 +65,7 @@ void Client::readbody()
         else
             readContentLength(_socket);
     }
-    if(isBodyEnd == true)
+    if (isBodyEnd == true)
     {
         parseRequestBody();
     }
@@ -166,41 +166,21 @@ bool Client::checkReturn()
     return true;
 }
 
-
-
 void Client::parseRequestBody()
 {
     std::cout << "parseRequestBody" << std::endl;
     // request is multipart/form-data or binary
-    if(_headers.find("Content-Length") != _headers.end() \
-    && _headers.find("Transfer-Encoding") == _headers.end())
+    if (_headers.find("Content-Length") != _headers.end() && _headers.find("Transfer-Encoding") == _headers.end())
     {
-        if (_headers.find("Content-Type") != _headers.end() \
-        && _headers["Content-Type"].find("boundary=") != std::string::npos)
+        if (_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
             parseMultipartData();
 
         else
             parseBinaryData();
-
     }
     // request is chunked
-    else if(_headers.find("Transfer-Encoding") != _headers.end() \
-    && _headers["Transfer-Encoding"].find("chunked") != std::string::npos)
+    else if (_headers.find("Transfer-Encoding") != _headers.end() && _headers["Transfer-Encoding"].find("chunked") != std::string::npos)
         parseChunkedData();
-}
-
-void Client::createFile(std::string path)
-{
-    std::ofstream file;
-    struct stat filehelp;
-    stat(path.c_str(), &filehelp);
-    if (S_ISREG(filehelp.st_mode))
-        throw (_errorCode = 409, "file already exist");
-    file.open(path.c_str(), std::ios::binary);
-    if(!file.is_open())
-        throw (_errorCode = 501, "file open error");
-    file << _body;
-    file.close();
 }
 
 char randchar()
@@ -212,12 +192,12 @@ char randchar()
     return alphanum[rand() % (sizeof(alphanum) - 1)];
 }
 
-std::string Client::generateRandomString ()
+std::string Client::generateRandomString()
 {
     size_t length = 10;
     srand(time(NULL));
-    std::string str(length,0);
-    std::generate_n( str.begin(), length, randchar );
+    std::string str(length, 0);
+    std::generate_n(str.begin(), length, randchar);
     return str;
 }
 
@@ -229,11 +209,11 @@ void Client::parseBinaryData()
     std::cout << "parse Binary" << std::endl;
     std::string path = _location->root;
     filename = generateRandomString();
-    if(path.back() != '/')
+    if (path.back() != '/')
         path += '/';
     path += filename;
     createFile(path);
-    throw (_errorCode = 201,_isError = true,"binary");
+    throw(_errorCode = 201, _isError = true, "binary");
 }
 
 std::string Client::unchunk(std::string &chunked)
@@ -259,14 +239,14 @@ std::string Client::unchunk(std::string &chunked)
 void Client::parseChunkedData()
 {
     std::string path;
-    _body = unchunk (_body);
+    _body = unchunk(_body);
     struct stat filehelp;
     stat(_pathFile.c_str(), &filehelp);
     std::cout << "_pathfile:" << _pathFile << std::endl;
-    if (S_ISDIR(filehelp.st_mode))  
+    if (S_ISDIR(filehelp.st_mode))
     {
         std::cout << "is dir" << std::endl;
-        path = _pathFile ;
+        path = _pathFile;
         if (path.back() != '/')
             path += '/';
         filename = generateRandomString();
@@ -281,7 +261,8 @@ size_t Client::fileCount()
 {
     size_t count = 0;
     size_t pos = 0;
-    while ((pos = _body.find(_boundry, pos)) != std::string::npos)
+    std::string tkn = "--" + _boundry + "\r\n";
+    while ((pos = _body.find(tkn, pos)) != std::string::npos)
     {
         count++;
         pos += _boundry.length();
@@ -303,7 +284,6 @@ std::string Client::getFileName(std::string fileHeader)
             extension = "." + content_type.substr(pos + 1);
         else
             extension = ".txt";
-        
     }
     else
         extension = ".txt";
@@ -320,12 +300,11 @@ std::string Client::getFileName(std::string fileHeader)
         if (filename == "")
             filename = generateRandomString();
         filename += extension;
-
     }
     else
         filename = generateRandomString() + extension;
 
-    if(_pathFile.back() != '/')
+    if (_pathFile.back() != '/')
         filename = _pathFile + "/" + filename;
     else
         filename = _pathFile + filename;
@@ -336,36 +315,49 @@ std::string Client::getFileName(std::string fileHeader)
 void Client::parseMultipartData()
 {
     size_t count = fileCount();
+    std::cout << "count : " << count << std::endl;
     std::string name;
-    std::string midBoundary = "--"  + _boundry + "\r\n";
-    std::string endBoundary = "--"  + _boundry + "--\r\n";
+    std::string midBoundary = "--" + _boundry + "\r\n";
+    std::string endBoundary = "--" + _boundry + "--\r\n";
     std::string fileContent;
-    for (size_t i = 0; i < count; i++) 
+    for (size_t i = 0; i < count; i++)
     {
         name = getFileName(_body.substr(0, _body.find("\r\n\r\n")));
         _body.erase(0, _body.find("\r\n\r\n") + 4);
         if (_body.find(midBoundary) != std::string::npos)
         {
             fileContent = _body.substr(0, _body.find(midBoundary));
-            _body.erase( 0 , _body.find(midBoundary) + midBoundary.length());
+            _body.erase(0, _body.find(midBoundary) + midBoundary.length());
         }
         else if (_body.find(endBoundary) != std::string::npos)
         {
             fileContent = _body.substr(0, _body.find(endBoundary));
-            _body.erase( 0 , _body.find(endBoundary) + endBoundary.length());
+            _body.erase(0, _body.find(endBoundary) + endBoundary.length());
         }
-        createFile(name,fileContent);
+        createFile(name, fileContent);
     }
-    throw (_errorCode = 201,_isError = true,"good shit");
+    throw(_errorCode = 201, _isError = true, "good shit");
 }
-void Client::createFile (std::string name, std::string &fileContent)
+void Client::createFile(std::string path)
+{
+    struct stat buffer;
+    // if the file already exists, return ;
+    if (stat(path.c_str(), &buffer) == 0)
+        return;
+    std::ofstream outfile(path.c_str());
+    if (!outfile.is_open())
+        throw(_errorCode = 501, _isError = true, "couldn't create the file");
+    outfile << _body;
+    outfile.close();
+}
+void Client::createFile(std::string name, std::string &fileContent)
 {
     struct stat buffer;
     if (stat(name.c_str(), &buffer) == 0)
-        throw (_errorCode = 409,_isError = true,"no idont think so");
+        throw(_errorCode = 409, _isError = true, "no idont think so");
     std::ofstream outfile(name.c_str());
     if (!outfile.is_open())
-        throw (_errorCode = 501,_isError = true,"couldn't create the file");
+        throw(_errorCode = 501, _isError = true, "couldn't create the file");
     outfile << fileContent;
     outfile.close();
 
