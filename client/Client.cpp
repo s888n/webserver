@@ -59,9 +59,7 @@ void Client::readbody()
         if (getHeader("Transfer-Encoding") != NULL)
             readChunked(_socket);
         else if (getHeader("Content-Type") != NULL && getHeader("Content-Type")->find("boundary=") != std::string::npos)
-        {
             readBoundry(_socket);
-        }
         else
             readContentLength(_socket);
     }
@@ -170,8 +168,6 @@ bool Client::checkReturn()
 
 void Client::parseRequestBody()
 {
-    std::cout << "parseRequestBody" << std::endl;
-    // request is multipart/form-data or binary
     if(_headers.find("Content-Length") != _headers.end() \
     && _headers.find("Transfer-Encoding") == _headers.end())
     {
@@ -303,7 +299,6 @@ std::string Client::getFileName(std::string fileHeader)
             extension = "." + content_type.substr(pos + 1);
         else
             extension = ".txt";
-        
     }
     else
         extension = ".txt";

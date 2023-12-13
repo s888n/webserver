@@ -11,7 +11,7 @@ class location;
 class Response
 {
     protected:
-        std::unordered_map<std::string, std::string> _headersResponse;
+        std::map<std::string, std::string> _headersResponse;
         std::map <std::string, std::string> _headersRequest;
         std::map<std::string, std::string> _MimeType;
         std::map<int, std::string> _errorPages;

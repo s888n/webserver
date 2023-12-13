@@ -52,6 +52,44 @@ Response::Response()
     _MimeType[".dll"] = "application/octet-stream";
     _MimeType[".class"] = "application/octet-stream";
     _MimeType[".doc"] = "application/msword";
+    _MimeType[".docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    _MimeType[".xls"] = "application/vnd.ms-excel";
+    _MimeType[".xlsx"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    _MimeType[".ppt"] = "application/vnd.ms-powerpoint";
+    _MimeType[".pptx"] = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    _MimeType[".odt"] = "application/vnd.oasis.opendocument.text";
+    _MimeType[".ods"] = "application/vnd.oasis.opendocument.spreadsheet";
+    _MimeType[".odp"] = "application/vnd.oasis.opendocument.presentation";
+    _MimeType[".odg"] = "application/vnd.oasis.opendocument.graphics";
+    _MimeType[".odc"] = "application/vnd.oasis.opendocument.chart";
+    _MimeType[".odb"] = "application/vnd.oasis.opendocument.database";
+    _MimeType[".odf"] = "application/vnd.oasis.opendocument.formula";
+    _MimeType[".wpd"] = "application/vnd.wordperfect";
+    _MimeType[".iso"] = "application/x-iso9660-image";
+    _MimeType[".csv"] = "text/csv";
+    _MimeType[".rtf"] = "application/rtf";
+    _MimeType[".7z"] = "application/x-7z-compressed";
+    _MimeType[".ics"] = "text/calendar";
+    _MimeType[".vcf"] = "text/x-vcard";
+    _MimeType[".apk"] = "application/vnd.android.package-archive";
+    _MimeType[".bat"] = "application/x-msdownload";
+    _MimeType[".bin"] = "application/octet-stream";
+    _MimeType[".cgi"] = "application/octet-stream";
+    _MimeType[".pl"] = "application/x-perl";
+    _MimeType[".py"] = "application/x-python";
+    _MimeType[".sh"] = "application/x-sh";
+    _MimeType[".sql"] = "application/x-sql";
+    _MimeType[".cab"] = "application/vnd.ms-cab-compressed";
+    _MimeType[".deb"] = "application/x-deb";
+    _MimeType[".tar.gz"] = "application/x-tar";
+    _MimeType[".tar.bz2"] = "application/x-bzip-compressed-tar";
+    _MimeType[".tar.lzma"] = "application/x-lzma-compressed-tar";
+    _MimeType[".tar.xz"] = "application/x-xz-compressed-tar";
+    _MimeType[".gem"] = "application/x-ruby";
+    _MimeType[".rpm"] = "application/x-rpm";
+    _MimeType[".rss"] = "application/rss+xml";
+    _MimeType[".dmg"] = "application/x-apple-diskimage";
+
 
     _errorPages[400] = "error_pages/400.html";
     _errorPages[401] = "error_pages/401.html";
@@ -119,14 +157,12 @@ void Response::sendBody(int fd)
     if(ret <=  0 )
     {
         fileSend.close();
-        
         _isBodyEnd = true;
         return;
     }
     ret = send(fd,buffer,ret,0);
     if(ret <= 0)
     {
-        // std::cout << "ret2 : " << ret << std::endl;
         fileSend.close();
         _isBodyEnd = true;
         _isConnectionClose = true;
@@ -141,9 +177,10 @@ bool Response::getIsheadSend() const
 
 void Response::sendRangeBody(int fd ,size_t start)
 {
-    char buffer[102400];
+    char buffer[1024000];
     int ret;
     struct stat filestat;
+    std::string tmp;
     stat(_file.c_str(), &filestat);
     fileSend.open(_file, std::ios::in | std::ios::binary);
     if(!fileSend.is_open())
@@ -152,7 +189,7 @@ void Response::sendRangeBody(int fd ,size_t start)
         return;
     }
     fileSend.seekg(start);
-    fileSend.read(buffer, 102400);
+    fileSend.read(buffer, 1024000);
     ret = fileSend.gcount();
     if(ret <=  0)
     {
@@ -164,7 +201,11 @@ void Response::sendRangeBody(int fd ,size_t start)
     size_t pos = start + ret;
     if(pos >= static_cast<size_t>(filestat.st_size))
         pos = filestat.st_size - 1;
-    _header += "Content-Type: video/mp4\r\n";
+    tmp = "Content-Type: application/octet-stream\r\n"; 
+    if(_file.find_last_of('.') != std::string::npos)
+        if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
+            tmp = "Content-Type: " +  _MimeType[_file.substr(_file.find_last_of('.'))] + "\r\n"; 
+    _header += tmp;
     _header += "Accept-Ranges: bytes\r\n";
     _header += "Connection: keep-alive\r\n"; 
     _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(pos) + "/" + std::to_string(filestat.st_size) + "\r\n";
