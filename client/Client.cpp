@@ -278,8 +278,10 @@ void Client::parseChunkedData()
     _body = unchunk (_body);
     struct stat filehelp;
     stat(_pathFile.c_str(), &filehelp);
+    std::cout << "_pathfile:" << _pathFile << std::endl;
     if (S_ISDIR(filehelp.st_mode))  
     {
+        std::cout << "is dir" << std::endl;
         path = _pathFile ;
         if (path.back() != '/')
             path += '/';
