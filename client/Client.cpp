@@ -205,11 +205,19 @@ void Client::parseBinaryData()
 
 {
     std::cout << "parse Binary" << std::endl;
-    std::string path = _location->root;
-    filename = generateRandomString();
-    if (path.back() != '/')
-        path += '/';
-    path += filename;
+    std::string path;
+    struct stat filehelp;
+    stat(_pathFile.c_str(), &filehelp);
+    if(S_ISDIR(filehelp.st_mode))
+    {
+        path = _location->root;
+        if (path.back() != '/')
+            path += '/';
+        filename = generateRandomString();
+        path += filename;
+    }
+    else
+        path = _pathFile;
     createFile(path);
     throw(_errorCode = 201, _isError = true, "binary");
 }
