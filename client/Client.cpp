@@ -29,6 +29,7 @@ void Client::readheader()
         if (ret <= 0)
             return;
         _request.append(buffer, ret);
+        timestamp = getTime();
     }
     timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
@@ -95,6 +96,7 @@ void Client::sendResponse()
             sendBodyString(_socket);
         else
             sendBody(_socket);
+        timestamp = getTime();
     }
     timestamp = time(NULL);
 }
@@ -219,39 +221,7 @@ std::string Client::generateRandomString ()
     return str;
 }
 
-void Client::parseMultipartData()
-{
-    std::string midBoundary = "--"  + _boundry + "\r\n";
-    std::string endBoundary = "--"  + _boundry + "--\r\n";
-    std::string help;
-    while(_body.size() > 0 )
-    {
-        std::string tmp = _body.substr(0, _body.find("\r\n\r\n"));
-        _body.erase(0, _body.find("\r\n\r\n") + 4);
 
-        filename = tmp.substr(tmp.find("filename=") + 10);
-        filename = filename.substr(0, filename.find("\""));
-        std::string path = _location->root;
-        if(path.back() != '/')
-            path += "/";
-        path += filename;
-        if(_body.find(midBoundary) != std::string::npos)
-        {
-            help = _body.substr(_body.find(midBoundary));
-            _body = _body.substr(0, _body.find(midBoundary));
-            createFile(path);
-            _body = help;
-        }
-        else if(_body.find(endBoundary) != std::string::npos)
-        {
-            help = _body.substr(_body.find(endBoundary));
-            _body = _body.substr(0, _body.find(endBoundary));
-            createFile(path);
-            _body = "";
-        }
-    }
-    throw (_errorCode = 201,_isError = true,"good shit");
-}
 
 void Client::parseBinaryData()
 
@@ -292,8 +262,10 @@ void Client::parseChunkedData()
     _body = unchunk (_body);
     struct stat filehelp;
     stat(_pathFile.c_str(), &filehelp);
+    std::cout << "_pathfile:" << _pathFile << std::endl;
     if (S_ISDIR(filehelp.st_mode))  
     {
+        std::cout << "is dir" << std::endl;
         path = _pathFile ;
         if (path.back() != '/')
             path += '/';
@@ -304,4 +276,97 @@ void Client::parseChunkedData()
         path = _pathFile; 
     createFile (path);
     throw (_errorCode = 201,_isError = true,"unchunked");
+}
+size_t Client::fileCount()
+{
+    size_t count = 0;
+    size_t pos = 0;
+    while ((pos = _body.find(_boundry, pos)) != std::string::npos)
+    {
+        count++;
+        pos += _boundry.length();
+    }
+    return count;
+}
+
+std::string Client::getFileName(std::string fileHeader)
+{
+    std::string filename = "";
+    std::string extension;
+    std::string content_type;
+    size_t pos = 0;
+    if ((pos = fileHeader.find("Content-Type: ")) != std::string::npos)
+    {
+        pos += 14;
+        content_type = fileHeader.substr(pos, fileHeader.find("\r\n", pos) - pos);
+        if ((pos = content_type.find("/")) != std::string::npos)
+            extension = "." + content_type.substr(pos + 1);
+        else
+            extension = ".txt";
+        
+    }
+    else
+        extension = ".txt";
+
+    if ((pos = fileHeader.find("filename=")) != std::string::npos)
+    {
+        filename = fileHeader.substr(pos + 10);
+        filename = filename.substr(0, filename.find("\""));
+    }
+    else if ((pos = fileHeader.find("name=")) != std::string::npos && fileHeader.find("filename=") == std::string::npos)
+    {
+        filename = fileHeader.substr(pos + 6);
+        filename = filename.substr(0, filename.find("\""));
+        if (filename == "")
+            filename = generateRandomString();
+        filename += extension;
+
+    }
+    else
+        filename = generateRandomString() + extension;
+
+    if(_pathFile.back() != '/')
+        filename = _pathFile + "/" + filename;
+    else
+        filename = _pathFile + filename;
+
+    return filename;
+}
+
+void Client::parseMultipartData()
+{
+    size_t count = fileCount();
+    std::string name;
+    std::string midBoundary = "--"  + _boundry + "\r\n";
+    std::string endBoundary = "--"  + _boundry + "--\r\n";
+    std::string fileContent;
+    for (size_t i = 0; i < count; i++) 
+    {
+        name = getFileName(_body.substr(0, _body.find("\r\n\r\n")));
+        _body.erase(0, _body.find("\r\n\r\n") + 4);
+        if (_body.find(midBoundary) != std::string::npos)
+        {
+            fileContent = _body.substr(0, _body.find(midBoundary));
+            _body.erase( 0 , _body.find(midBoundary) + midBoundary.length());
+        }
+        else if (_body.find(endBoundary) != std::string::npos)
+        {
+            fileContent = _body.substr(0, _body.find(endBoundary));
+            _body.erase( 0 , _body.find(endBoundary) + endBoundary.length());
+        }
+        createFile(name,fileContent);
+    }
+    throw (_errorCode = 201,_isError = true,"good shit");
+}
+void Client::createFile (std::string name, std::string &fileContent)
+{
+    struct stat buffer;
+    if (stat(name.c_str(), &buffer) == 0)
+        throw (_errorCode = 409,_isError = true,"no idont think so");
+    std::ofstream outfile(name.c_str());
+    if (!outfile.is_open())
+        throw (_errorCode = 501,_isError = true,"couldn't create the file");
+    outfile << fileContent;
+    outfile.close();
+
 }

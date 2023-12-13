@@ -176,7 +176,7 @@ void parser::parseServerBlocks(stringVector sbs)
 {
     for (size_t i = 0; i < sbs.size(); i++)
         servers.push_back(parseServer(sbs[i]));
-
+    validateServersNames();
 }
 
 
@@ -218,7 +218,6 @@ server parser::parseServer(std::string &sb)
     server server = getServer(split(serverBlock, ";"));
     parseLocationBlocks(lbs, server);
     setDefaultLocation(server);
-    // printServer(server);
     return server;
 }
 
@@ -600,6 +599,11 @@ std::pair<int ,std::string> parser::setLocationReturn(stringVector &values)
         {
             std::string path = tokens[0];
             trim(path, " \t\n\r");
+            if (path.length() == 0)
+                throw std::runtime_error("Error: invalid return");
+            //validate that the path starts with http:// or https://
+            if (path.find("http://") != 0 && path.find("https://") != 0)
+                throw std::runtime_error("Error: Path must start with http:// or https://");
             return std::make_pair(-1,path);
         }
     }
@@ -695,4 +699,25 @@ void parser::setDefaultLocation(server &server)
     location.methods = server.methods;
     location.error_pages = server.error_pages;
     server.locations.push_back(location);
+}
+//validate that there are no duplicate server names
+void parser::validateServersNames()
+{
+    for (size_t i = 0; i < servers.size(); i++)
+    {
+        for (size_t j = 0; j < servers[i].server_names.size(); j++)
+        {
+            for (size_t k = 0; k < servers.size(); k++)
+            {
+                if (i != k)
+                {
+                    for (size_t l = 0; l < servers[k].server_names.size(); l++)
+                    {
+                        if (servers[i].server_names[j] == servers[k].server_names[l])
+                            throw std::runtime_error("Error: duplicate server name");
+                    }
+                }
+            }
+        }
+    }
 }

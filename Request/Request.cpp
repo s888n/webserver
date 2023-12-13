@@ -271,9 +271,14 @@ void Request::tryfilePost()
     {
         stat(tmp.substr(0,tmp.find_last_of('/')).c_str(), &_stat);
         if(S_ISDIR(_stat.st_mode))
+        {
             return (_pathFile = tmp,void());
+
+        }
         else
-            throw (_errorCode = 404,_isError =true ,"method error");
+        {
+            throw (_errorCode = 404,_isError = true ,"method error");
+        }
     }
 }
 

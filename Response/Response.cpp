@@ -278,8 +278,8 @@ bool Response::getIsConnectionClose() const
         if(_bodyResponse.size() > 1024)
         {
             tmp = _bodyResponse.substr(0,1024);
+            ret = send(fd,tmp.c_str(),1024,0);
             _bodyResponse = _bodyResponse.substr(1024);
-            ret = send(fd,_bodyResponse.c_str(),1024,0);
             if(ret <= 0 || _bodyResponse.size() == 0)
             {
                 _isBodyEnd = true;
