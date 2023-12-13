@@ -201,33 +201,12 @@ std::string Client::generateRandomString()
     return str;
 }
 
-// void Client::parseMultipartData2()
-// {
-//     std::string midBoundary = "--"  + _boundry + "\r\n";
-//     std::string endBoundary = "--"  + _boundry + "--\r\n";
-//     std::string tmp = _body.substr(0, _body.find("\r\n\r\n"));
-//     _body.erase(0, _body.find("\r\n\r\n") + 4);
 
-//     filename = tmp.substr(tmp.find("filename=") + 10);
-//     filename = filename.substr(0, filename.find("\""));
-//     std::string path = _location->root;
-//     if(path.back() != '/')
-//         path += "/";
-//     path += filename;
-
-//     while (_body.find(_boundry) != std::string::npos)
-//     {
-//         if(_body.find(midBoundary) != std::string::npos)
-//             _body.erase( _body.find(midBoundary) , midBoundary.length());
-//         else if(_body.find(endBoundary) != std::string::npos)
-//             _body.erase( _body.find(endBoundary) , endBoundary.length());
-//     }
-//     createFile(path);
-//     throw (_errorCode = 201,_isError = true,"good shit");
-// }
 
 void Client::parseBinaryData()
+
 {
+    std::cout << "parse Binary" << std::endl;
     std::string path = _location->root;
     filename = generateRandomString();
     if (path.back() != '/')
@@ -259,7 +238,6 @@ std::string Client::unchunk(std::string &chunked)
 
 void Client::parseChunkedData()
 {
-    std::cout << "parse chnked" << std::endl;
     std::string path;
     _body = unchunk(_body);
     struct stat filehelp;
@@ -275,10 +253,9 @@ void Client::parseChunkedData()
         path += filename;
     }
     else
-        path = _pathFile;
-    std::cout << "path : " << path << std::endl;
-    createFile(path);
-    throw(_errorCode = 201, _isError = true, "unchunked");
+        path = _pathFile; 
+    createFile (path);
+    throw (_errorCode = 201,_isError = true,"unchunked");
 }
 size_t Client::fileCount()
 {
@@ -383,4 +360,5 @@ void Client::createFile(std::string name, std::string &fileContent)
         throw(_errorCode = 501, _isError = true, "couldn't create the file");
     outfile << fileContent;
     outfile.close();
+
 }
