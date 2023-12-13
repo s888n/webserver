@@ -119,6 +119,8 @@ void webserv::run()
         for (size_t i = 0; i < pollfds.size(); i++)
         {
             //pollError(pollfds[i], i);
+            if(pollfds[i].revents == 0)
+                continue;
             if(pollfds[i].revents & POLLIN)
             {
                 if (isServer(pollfds[i].fd))
@@ -128,8 +130,10 @@ void webserv::run()
             }
             else if (pollfds[i].revents & POLLOUT)
                 writeToClient(pollfds[i]);
+            // else
+            //     closeClient(pollfds[i].fd);
         }
-        checkTimeout();
+        // checkTimeout();
     }
 }
 Client *webserv::getClient(int fd)

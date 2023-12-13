@@ -34,7 +34,7 @@ void Client::readheader()
     timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
-    std::cout << _request << std::endl;
+    // std::cout << _request << std::endl;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
     _server = &findServer();
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
@@ -83,7 +83,6 @@ void Client::sendResponse()
         *tmp = tmp->substr(tmp->find("=") + 1);
         ss << *tmp;
         ss >> pos;
-        std::cout << "start pos : " << pos << std::endl;
         sendRangeBody(_socket, pos);
     }
     else

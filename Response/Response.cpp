@@ -150,9 +150,9 @@ void Response::sendHeaders(int fd)
 
 void Response::sendBody(int fd)
 {
-    char buffer[10240];
+    char buffer[500];
     int ret;
-    fileSend.read(buffer, 10240);
+    fileSend.read(buffer, 500);
     ret = fileSend.gcount();
     if(ret <=  0 )
     {
@@ -177,7 +177,7 @@ bool Response::getIsheadSend() const
 
 void Response::sendRangeBody(int fd ,size_t start)
 {
-    char buffer[1024000];
+    char buffer[10240];
     int ret;
     struct stat filestat;
     std::string tmp;
@@ -189,7 +189,7 @@ void Response::sendRangeBody(int fd ,size_t start)
         return;
     }
     fileSend.seekg(start);
-    fileSend.read(buffer, 1024000);
+    fileSend.read(buffer, 10240);
     ret = fileSend.gcount();
     if(ret <=  0)
     {
@@ -207,7 +207,7 @@ void Response::sendRangeBody(int fd ,size_t start)
             tmp = "Content-Type: " +  _MimeType[_file.substr(_file.find_last_of('.'))] + "\r\n"; 
     _header += tmp;
     _header += "Accept-Ranges: bytes\r\n";
-    _header += "Connection: keep-alive\r\n"; 
+    _header += "Connection: close\r\n"; 
     _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(pos) + "/" + std::to_string(filestat.st_size) + "\r\n";
     _header += "Content-Length: " + std::to_string(ret) + "\r\n";
     _header += "\r\n";
@@ -265,7 +265,7 @@ void Response::fillResponseMap()
     // _headersResponse["Host"] = _headersRequest["Host"];
 
     _headersResponse["Accept-Ranges"] = "bytes";
-    _headersResponse["Connection"] = "Keep-Alive";
+    _headersResponse["Connection"] = "close";
 
 }
 void  Response::sendExaption(int fd, int status)
