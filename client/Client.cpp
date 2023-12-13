@@ -385,12 +385,10 @@ void Client::createFile (std::string name, std::string &fileContent)
 {
     struct stat buffer;
     if (stat(name.c_str(), &buffer) == 0)
-        return;
+        throw (_errorCode = 409,_isError = true,"no idont think so");
     std::ofstream outfile(name.c_str());
-    std::cout << "Writing to file: " << name << std::endl;
     if (!outfile.is_open())
-        throw std::runtime_error("Could not open file to write");
-
+        throw (_errorCode = 501,_isError = true,"couldn't create the file");
     outfile << fileContent;
     outfile.close();
 
