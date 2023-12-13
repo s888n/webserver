@@ -24,10 +24,10 @@ class Client : public Request, public Response
         int _socket;
         struct sockaddr_in addr;
         socklen_t addrlen;
-        time_t timestamp;
         int serverFd;
         bool isBodyString;
-
+        std::string filename;
+        std::string boundary;
         Client();
         void readRequest();
         void readheader();
@@ -36,6 +36,15 @@ class Client : public Request, public Response
         void sendResponse();
         bool getIsParsed() const;
         void fillResponseMap();
+        bool checkReturn();
+        void parseRequestBody();
+        void createFile(std::string path);
+        void parseMultipartData();
+        void parseBinaryData();
+        void parseChunkedData();
+        std::string unchunk(std::string &chunked);
+        std::string generateRandomString();
+
         ~Client();
 };
 

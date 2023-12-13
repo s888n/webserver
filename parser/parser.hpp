@@ -55,6 +55,7 @@ class parser
         void setLocationDefaultValues(location &location, server & server, stringVector values);
         void validateLocationDirectiveCount(stringVector &values);
         void setDefaultLocation(server &server);
+        void validateServersNames();
 };
 
 #endif
