@@ -29,6 +29,7 @@ void Client::readheader()
         if (ret <= 0)
             return;
         _request.append(buffer, ret);
+        timestamp = getTime();
     }
     timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
@@ -95,6 +96,7 @@ void Client::sendResponse()
             sendBodyString(_socket);
         else
             sendBody(_socket);
+        timestamp = getTime();
     }
     timestamp = time(NULL);
 }

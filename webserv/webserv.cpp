@@ -62,6 +62,7 @@ void webserv::readFromClient(struct pollfd &pollfd)
     {
         std::string tmp;
         pollfd.events = POLLOUT;
+
         client->_file = client->_pathFile;
         client->_locationResponse = client->_location;
         if(client->checkReturn() == true)
