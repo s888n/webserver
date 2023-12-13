@@ -39,12 +39,14 @@ class Client : public Request, public Response
         bool checkReturn();
         void parseRequestBody();
         void createFile(std::string path);
+        void createFile(std::string path,std::string &fileContent);
         void parseMultipartData();
         void parseBinaryData();
         void parseChunkedData();
         std::string unchunk(std::string &chunked);
         std::string generateRandomString();
-
+        std::string getFileName(std::string fileHeader);
+        size_t fileCount();
         ~Client();
 };
 
