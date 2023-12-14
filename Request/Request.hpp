@@ -58,6 +58,7 @@ class Request
         bool getIsheaderIsRecv();
         ~Request();
         void tryfilePost();
+        void tryfileDelete();
 };
 
 #endif
