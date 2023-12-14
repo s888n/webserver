@@ -277,10 +277,67 @@ void Request::tryfilePost()
     }
 }
 
-void Request::matchlocationForDELETE()
+void removeDir(std::string path)
 {
+    DIR *dir;
+    std::string tmp;
+    struct dirent *en;
+    struct stat _stat;
+    dir  = opendir(path.c_str());
+    if(dir == NULL)
+        return;
+    while((en = readdir(dir)))
+    {
+        tmp = path + en->d_name;
+        stat(tmp.c_str(),&_stat);
+        if(S_ISDIR(_stat.st_mode))
+        {
+            if(en->d_name[0] == '.')
+                continue;
+            if(tmp.back() != '/')
+                tmp += '/';
+            removeDir(tmp.c_str());
+        }
+        else if(S_ISREG(_stat.st_mode))
+             remove(tmp.c_str());
+    }
+    remove(path.c_str());
+    closedir(dir);
+}
+
+void Request::tryfileDelete()
+{
+    struct stat     _stat;
+    std::string     tmp;
+
+    tmp = _location->root;
+    if(tmp.back() == '/')
+        tmp = tmp.substr(0, tmp.length() - 1);
+    tmp = tmp + _headers["Path"];
+    stat(tmp.c_str(), &_stat);
+    if(S_ISDIR(_stat.st_mode))
+    {
+        if(tmp.back() == '/')
+            removeDir(tmp);
+        else
+            throw (_errorCode = 409,_isError =true ,"method error");
+    }else if(S_ISREG(_stat.st_mode))
+            std::remove(tmp.c_str());
+        else
+            throw (_errorCode = 404,_isError =true ,"method error");
+    throw (_errorCode = 204 ,"method error");
 
 }
+
+void Request::matchlocationForDELETE()
+{
+    if(_location->isReturn == true)
+        throw "return";
+    if(std::find(_location->methods.begin(), _location->methods.end(), "DELETE") == _location->methods.end())
+        throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
+    tryfileDelete();
+}
+
 
 void Request::parseBody()
 {
