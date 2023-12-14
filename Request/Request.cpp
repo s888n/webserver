@@ -1,6 +1,8 @@
 #include "Request.hpp"
 #include "../server/server.hpp"
 #include <sstream>
+#include <cstring>
+#include <limits.h>
 
 Request::Request()
 {
@@ -140,12 +142,26 @@ void Request::uriToPath()
         }
     }
     _headers["Path"] = tmp;
+    
+    // if(tmp.find("/../") != std::string::npos || tmp.find_last_of("/..") != tmp.size() - 3)
+    //     throw (_errorCode = 400 ,_isError = true,"error"); // Bad Request"))
 }
 
 
 void Request::matchlocation()
 {
+    std::string     pathreal,rootreal;
+    char hold1[PATH_MAX];
+    char hold2[PATH_MAX];
+    std::string tmp;
     findlocation();
+    tmp = _location->root + _headers["Path"];
+    realpath(tmp.c_str(),hold1);
+    realpath(_location->root.c_str(),hold2);
+    pathreal = hold1;
+    rootreal = hold2;
+    if(pathreal.find(rootreal) != 0)
+        throw (_errorCode = 400,_isError =true ,"method error");
     if(_headers["Method"] == "GET")
         matchlocationForGET();
     else if(_headers["Method"] == "POST")
@@ -169,6 +185,7 @@ void Request::tryFiles()
     std::string     tmp;
     struct stat     _stat;
     std::fstream    fs;
+
 
     tmp = _location->root;
     if(tmp.back() == '/')
@@ -290,23 +307,26 @@ void removeDir(std::string path)
     struct stat _stat;
     dir  = opendir(path.c_str());
     if(dir == NULL)
+    {
         return;
+    }
     while((en = readdir(dir)))
     {
         tmp = path + en->d_name;
         stat(tmp.c_str(),&_stat);
         if(S_ISDIR(_stat.st_mode))
         {
-            if(en->d_name[0] == '.')
+            if(std::string(en->d_name) == "." || std::string(en->d_name) == "..")
                 continue;
             if(tmp.back() != '/')
                 tmp += '/';
+            std::cout << "removeDir : " << tmp << std::endl;
             removeDir(tmp.c_str());
         }
         else if(S_ISREG(_stat.st_mode))
-             remove(tmp.c_str());
+            std::cout << "reg ::  " << tmp <<std::endl;//remove(tmp.c_str());
     }
-    remove(path.c_str());
+    // remove(path.c_str());
     closedir(dir);
 }
 
