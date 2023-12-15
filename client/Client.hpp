@@ -48,6 +48,7 @@ class Client : public Request, public Response
         std::string getFileName(std::string fileHeader);
         size_t fileCount();
         ~Client();
+        void parseHyprid();
 };
 
 #endif

@@ -126,16 +126,11 @@ void Response::sendHeaders(int fd)
     stat(_file.c_str(), &filestat);
     fillResponseMap();
     fileSend.open(_file, std::ios::in | std::ios::binary);
-    // std::cout << "file : >>>>>>>>>>>>" << _file << std::endl;
     if(!S_ISREG(filestat.st_mode))
-    {
-        // std::cout << "<<<<<<<<<<<<<<<<,make body >>>>>>>>>>>" << std::endl;
         makeBody();
-    }
     if(fileSend.is_open())
         createLengthHeader();
     makeHeader(_statusCode);
-    // std::cout << _header << std::endl;
     ret = send(fd,_header.c_str(),_header.size(),0);
     if(ret <= 0)
         return;
@@ -286,10 +281,7 @@ void Response::createLengthHeader()
     struct stat filestat;
     stat(_file.c_str(), &filestat);
     if(_bodyResponse.size() > 0)
-    {
         _headersResponse["Content-Length"] = std::to_string(_bodyResponse.size());
-        // std::cout << "body size : >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << _bodyResponse.size() << std::endl;
-    }
     else if(_headersRequest.find("Range") != _headersRequest.end())
     {
         std::string tmp = _headersRequest["Range"];

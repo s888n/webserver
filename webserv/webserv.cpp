@@ -165,11 +165,8 @@ void webserv::checkTimeout()
 {
     for (size_t i = 0; i < clients.size(); i++)
     {
-        // std::cout << "timeout : " << getTime() - clients[i].timestamp  << std::endl;
         if (getTime() - clients[i].timestamp > TIMEOUT)
         {   
-
-            std::cout << "<<<<<<<<timeout>>>>>>>>>>>>" << std::endl;
             closeClient(clients[i]._socket);
             i--;
         }

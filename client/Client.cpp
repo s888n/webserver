@@ -40,7 +40,6 @@ void Client::readheader()
     timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
-    // std::cout << _request << std::endl;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
     _server = &findServer();
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
@@ -77,9 +76,7 @@ void Client::readbody()
     if(_isCgi == true)
         _request += _body;
     else if (isBodyEnd == true)
-    {
         parseRequestBody();
-    }
 }
 
 void Client::sendResponse()
@@ -171,12 +168,23 @@ bool Client::checkReturn()
     }
     return true;
 }
+void Client::parseHyprid()
+{
+    _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
+    _body = unchunk(_body);
+    parseMultipartData();
+}
+
 
 void Client::parseRequestBody()
 {
-    std::cout << "parseRequestBody" << std::endl;
+
     // request is multipart/form-data or binary
-    if (_headers.find("Content-Length") != _headers.end() && _headers.find("Transfer-Encoding") == _headers.end())
+    if(_headers.find("Transfer-Encoding") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
+    {
+        parseHyprid();
+    }
+    else if (_headers.find("Content-Length") != _headers.end() && _headers.find("Transfer-Encoding") == _headers.end())
     {
         if (_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
             parseMultipartData();
@@ -210,9 +218,7 @@ std::string Client::generateRandomString()
 
 
 void Client::parseBinaryData()
-
 {
-    std::cout << "parse Binary" << std::endl;
     std::string path;
     struct stat filehelp;
     stat(_pathFile.c_str(), &filehelp);
@@ -256,10 +262,8 @@ void Client::parseChunkedData()
     _body = unchunk(_body);
     struct stat filehelp;
     stat(_pathFile.c_str(), &filehelp);
-    std::cout << "_pathfile:" << _pathFile << std::endl;
     if (S_ISDIR(filehelp.st_mode))
     {
-        std::cout << "is dir" << std::endl;
         path = _pathFile;
         if (path.back() != '/')
             path += '/';
@@ -279,7 +283,7 @@ size_t Client::fileCount()
     while ((pos = _body.find(tkn, pos)) != std::string::npos)
     {
         count++;
-        pos += _boundry.length();
+        pos += tkn.length();
     }
     return count;
 }
@@ -329,7 +333,6 @@ std::string Client::getFileName(std::string fileHeader)
 void Client::parseMultipartData()
 {
     size_t count = fileCount();
-    std::cout << "count : " << count << std::endl;
     std::string name;
     std::string midBoundary = "--" + _boundry + "\r\n";
     std::string endBoundary = "--" + _boundry + "--\r\n";

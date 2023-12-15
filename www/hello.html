@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html >
+    <head>
+        <meta charset="UTF-8">
+        <title>Webserv - Hello</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/dark.css">
+    </head>
+    <body>
+        <h1>Webserv - Hello </h1>
+        <form action="http://localhost:8000/cgi-bin/hello.py" method="post" enctype="multipart/form-data">
+            <input type="text" name="name" placeholder="Name"  pattern="[A-Za-z]*" required>
+            <input type="text" name="color" placeholder="Color"  pattern="[A-Za-z]*" required>
+            <button type="submit">Send</button>
+        </form>
+    </body>

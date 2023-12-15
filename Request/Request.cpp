@@ -159,9 +159,6 @@ void Request::matchlocation()
     realpath(_location->root.c_str(),hold2);
     pathreal = hold1;
     rootreal = hold2;
-    std::cout << "path :  " << _headers["Path"] << std::endl;
-    std::cout << "fulpath ==" << tmp << std::endl;
-    //check path is end with .py
     if(pathreal.find(rootreal) != 0)
         throw (_errorCode = 400,_isError =true ,"method error");
     if(_headers["Method"] == "GET")
@@ -435,10 +432,7 @@ void Request::readBoundry(int fd)
         _body.append(buffer, ret);
         _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
         if(_body.find("--"+_boundry +"--") != std::string::npos)
-        {
-            std::cout << "end" << std::endl;
             isBodyEnd = true;
-        }
     }
 
 }
