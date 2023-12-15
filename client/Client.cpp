@@ -17,11 +17,17 @@ void Client::readRequest()
         readheader();
     else if (_isReadBody == true)
         readbody();
+    else if(_isCgi == true)
+    {
+        
+    }
+    
 }
 
 void Client::readheader()
 {
     char buffer[1024];
+    std::string tmp;
     int ret = 1;
     if (!_headerIsRecv)
     {
@@ -41,6 +47,12 @@ void Client::readheader()
     checkRequest();
     uriToPath();
     _headersRequest = _headers;
+    _isparsed = true;
+    tmp = _headers["path"];
+    if(tmp.size() >= 3 && (tmp.substr(tmp.size() - 3) == ".py" || tmp.substr(tmp.size() - 3) == ".js" ))
+        matchCgi();
+    if(_isCgi == true)
+        return;
     matchlocation();
     if (getHeader("Content-Length") != NULL)
     {
@@ -49,7 +61,6 @@ void Client::readheader()
         ss >> _contentLength;
     }
     _file = _pathFile;
-    _isparsed = true;
 }
 
 void Client::readbody()
@@ -63,7 +74,9 @@ void Client::readbody()
         else
             readContentLength(_socket);
     }
-    if (isBodyEnd == true)
+    if(_isCgi == true)
+        _request += _body;
+    else if (isBodyEnd == true)
     {
         parseRequestBody();
     }
@@ -137,13 +150,9 @@ bool Client::checkReturn()
         {
             _errorCode = _location->_return.first;
             if (_location->_return.second.front() == '/' && _headers.find("Host") != _headers.end())
-            {
                 _headersResponse["Location"] = "http://" + _headers["Host"] + _location->_return.second;
-            }
             else
-            {
                 _headersResponse["Location"] = _location->_return.second;
-            }
         }
         else
         {

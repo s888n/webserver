@@ -18,6 +18,8 @@ class Request
         std::ofstream *_os;
         std::string _pathDir;
         size_t      _contentLength;
+        bool        _isCgi;
+        location    *_locationCgi;
     public:
 
         location    *_location;
@@ -62,6 +64,7 @@ class Request
         void tryfileDelete();
         void removeDir(std::string path);
         void checkAccess(std::string path);
+        void matchCgi();
 };
 
 #endif

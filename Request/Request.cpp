@@ -15,9 +15,10 @@ Request::Request()
     _location = NULL;
     _server = NULL;
     _os = NULL;
+    _isCgi = false;
     _isNotRemove = false;
+    _locationCgi = NULL;
 
-    // location = NULL;
 }
 
 Request::~Request()
@@ -143,9 +144,6 @@ void Request::uriToPath()
         }
     }
     _headers["Path"] = tmp;
-    
-    // if(tmp.find("/../") != std::string::npos || tmp.find_last_of("/..") != tmp.size() - 3)
-    //     throw (_errorCode = 400 ,_isError = true,"error"); // Bad Request"))
 }
 
 
@@ -163,6 +161,7 @@ void Request::matchlocation()
     rootreal = hold2;
     std::cout << "path :  " << _headers["Path"] << std::endl;
     std::cout << "fulpath ==" << tmp << std::endl;
+    //check path is end with .py
     if(pathreal.find(rootreal) != 0)
         throw (_errorCode = 400,_isError =true ,"method error");
     if(_headers["Method"] == "GET")
@@ -180,6 +179,7 @@ void Request::matchlocationForGET()
         throw "return";
     if(std::find(_location->methods.begin(), _location->methods.end(), "GET") == _location->methods.end())
         throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
+    
     tryFiles();
 }
 
@@ -291,14 +291,9 @@ void Request::tryfilePost()
     {
         stat(tmp.substr(0,tmp.find_last_of('/')).c_str(), &_stat);
         if(S_ISDIR(_stat.st_mode))
-        {
             return (_pathFile = tmp,void());
-
-        }
         else
-        {
             throw (_errorCode = 404,_isError = true ,"method error");
-        }
     }
 }
 void Request::checkAccess(std::string path)
@@ -484,5 +479,49 @@ void  Request::readContentLength(int fd)
     }
 }
 
+
+void Request::matchCgi()
+{
+    std::string tmp;
+    char hold1[PATH_MAX];
+    char hold2[PATH_MAX];
+    std::string cgi_path;
+    std::string path;
+    struct stat     _stat;
+    
+    tmp = _headers["Path"];
+    tmp = tmp.substr(tmp.find_last_of('.'));
+    tmp = "*" + tmp;
+    for(size_t i = 0; i < _server->locations.size(); i++)
+    {
+        if(_server->locations[i].path == tmp)
+        {
+            _isCgi = true;
+            _locationCgi = &_server->locations[i];
+            realpath(_locationCgi->cgi_path.c_str(),hold1);
+            realpath(_headers["Path"].c_str(),hold2);
+            cgi_path = hold1;
+            path = hold2;
+            if(path.find(cgi_path) != 0)
+                _isCgi = false;
+            break ;
+        }
+    }
+    if(_isCgi == false)
+        return ;
+    if(std::find(_locationCgi->methods.begin(), _locationCgi->methods.end(), _headers["Method"]) == _locationCgi->methods.end())
+       return (_isCgi = false ,void());
+
+
+    if(_headers["Method"] == "POST")
+        _isReadBody = true;
+    stat(path.c_str(), &_stat);
+    if(S_ISREG(_stat.st_mode))
+    {
+        _pathFile = path;
+        return ;
+    }
+    _isCgi = false;
+}
 
 

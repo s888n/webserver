@@ -2,7 +2,7 @@
 
 
 
-std::string cgi::execute(std::string &compiler, std::string &scriptPath)
+std::string cgi::execute(std::string &compiler, std::string &scriptPath ,)
 {
     pipe_fd = new int[2];
     argv = new char*[3];
