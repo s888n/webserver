@@ -15,6 +15,7 @@ Request::Request()
     _location = NULL;
     _server = NULL;
     _os = NULL;
+    _isNotRemove = false;
 
     // location = NULL;
 }
@@ -160,6 +161,8 @@ void Request::matchlocation()
     realpath(_location->root.c_str(),hold2);
     pathreal = hold1;
     rootreal = hold2;
+    std::cout << "path :  " << _headers["Path"] << std::endl;
+    std::cout << "fulpath ==" << tmp << std::endl;
     if(pathreal.find(rootreal) != 0)
         throw (_errorCode = 400,_isError =true ,"method error");
     if(_headers["Method"] == "GET")
@@ -298,8 +301,39 @@ void Request::tryfilePost()
         }
     }
 }
+void Request::checkAccess(std::string path)
+{
+    DIR *dir;
+    std::string tmp;
+    struct dirent *en;
+    struct stat _stat;
+    dir  = opendir(path.c_str());
+    if(dir == NULL)
+        return;
+    while((en = readdir(dir)))
+    {
+        tmp = path + en->d_name;
+        stat(tmp.c_str(),&_stat);
+        if(S_ISDIR(_stat.st_mode))
+        {
+            if(std::string(en->d_name) == "." || std::string(en->d_name) == "..")
+                continue;
+            if(tmp.back() != '/')
+                tmp += '/';
+            removeDir(tmp.c_str());
+        }
+        else if(S_ISREG(_stat.st_mode))
+        {
+            if(access(tmp.c_str(), W_OK) != 0)
+                _isNotRemove = true;
+        }
+    }
+    if(access(path.c_str(), W_OK) != 0)
+        _isNotRemove = true;
+    closedir(dir);
+}
 
-void removeDir(std::string path)
+void Request::removeDir(std::string path)
 {
     DIR *dir;
     std::string tmp;
@@ -320,13 +354,16 @@ void removeDir(std::string path)
                 continue;
             if(tmp.back() != '/')
                 tmp += '/';
-            std::cout << "removeDir : " << tmp << std::endl;
             removeDir(tmp.c_str());
+            tmp.pop_back();
+            remove(tmp.c_str());
         }
         else if(S_ISREG(_stat.st_mode))
-            std::cout << "reg ::  " << tmp <<std::endl;//remove(tmp.c_str());
+            remove(tmp.c_str());
     }
-    // remove(path.c_str());
+    if(path.back() == '/')
+        path.pop_back();
+    remove(path.c_str());
     closedir(dir);
 }
 
@@ -343,7 +380,12 @@ void Request::tryfileDelete()
     if(S_ISDIR(_stat.st_mode))
     {
         if(tmp.back() == '/')
+        {
+            checkAccess(tmp);
+            if(_isNotRemove == true)
+                throw (_errorCode = 403,_isError =true ,"method error");
             removeDir(tmp);
+        }
         else
             throw (_errorCode = 409,_isError =true ,"method error");
     }else if(S_ISREG(_stat.st_mode))

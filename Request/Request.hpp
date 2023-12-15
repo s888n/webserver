@@ -25,6 +25,7 @@ class Request
         std::string _pathFile;
         server      *_server;
         std::string _body;
+        bool _isNotRemove;
         bool isBodyEnd;
         
         Request();
@@ -59,6 +60,8 @@ class Request
         ~Request();
         void tryfilePost();
         void tryfileDelete();
+        void removeDir(std::string path);
+        void checkAccess(std::string path);
 };
 
 #endif
