@@ -5,12 +5,23 @@
 
 class cgi
 {
-    int *pipe_fd;
-    char **env;
+    int pipefd[2];
+    pid_t cpid;
+    char buf;
+    std::string compiler;
+    std::string scriptPath;
+    char **envp;
+    std::string request;
+    std::string body;
+    std::string header;
+    std::string response;
     char **argv;
-    int pid;
-    int status;
-    std::string path;
-    std::string execute(std::string &compiler, std::string &scriptPath);
+
+    public:
+        cgi (std::string _compiler, std::string _scriptPath, std::string _request);
+        ~cgi();
+        void excuteCgi();
+        void setEnvp();
+        std::string getResponse();
 };
 #endif

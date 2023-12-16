@@ -1,53 +1,106 @@
 #include "cgi.hpp"
 
 
-
-std::string cgi::execute(std::string &compiler, std::string &scriptPath)
+cgi::cgi(std::string _compiler, std::string _scriptPath, std::string _request)
 {
-    pipe_fd = new int[2];
-    argv = new char*[3];
-    env = new char*[1];
-
-    argv[0] = new char[compiler.size() + 1];
-    argv[1] = new char[scriptPath.size() + 1];
-    argv[2] = NULL;
-    strcpy(argv[0], compiler.c_str());
-    strcpy(argv[1], scriptPath.c_str());
-    env[0] = NULL;
-    if (pipe(pipe_fd) < 0)
-        perror("pipe error");
-    pid = fork();
-    if (pid < 0)
-        perror("fork error");
-    
-    if (pid == 0)
+    if (_compiler == "" || _scriptPath == "" || _request == "")
     {
-        close(pipe_fd[0]);
-        dup2(pipe_fd[1], 1);
-        close(pipe_fd[1]);
-        execve(argv[0], argv, env);
-        exit(0);
+        perror ("cgi constructor");
+        return;
+    }
+
+    this->compiler = _compiler;
+    this->request = _request;
+    this->scriptPath = _scriptPath;
+    setEnvp();
+    argv = new char *[3];
+    
+    argv[0] = new char[compiler.size() + 1];
+    strcpy(argv[0], compiler.c_str());
+    argv[0][compiler.size()] = '\0';
+    
+    argv[1] = new char[scriptPath.size() + 1];
+    strcpy(argv[1], scriptPath.c_str());
+    argv[1][scriptPath.size()] = '\0';
+
+    argv[2] = NULL;
+    excuteCgi();
+}
+
+cgi::~cgi()
+{
+    for (int i = 0; envp[i] != NULL; i++)
+        delete[] envp[i];
+    delete[] envp;
+    for (int i = 0; argv[i] != NULL; i++)
+        delete[] argv[i];
+    delete[] argv;
+}
+
+void cgi::setEnvp()
+{
+    std::map<std::string, std::string> env;
+    header = request.substr(0, request.find("\r\n\r\n"));
+    body = request.substr(request.find("\r\n\r\n") + 4);
+    
+    //turn header into map
+    std::string tmp = header.substr(0, header.find("\r\n"));
+    env["REQUEST_METHOD"] = tmp.substr(0, tmp.find(" "));
+    header = header.substr(header.find("\r\n") + 2);
+    while (header.find("\r\n") != std::string::npos)
+    {
+        tmp = header.substr(0, header.find("\r\n"));
+        env[tmp.substr(0, tmp.find(":"))] = tmp.substr(tmp.find(":") + 2);
+        header = header.substr(header.find("\r\n") + 2);
+    }
+    //print map
+    for (std::map<std::string, std::string>::iterator it = env.begin(); it != env.end(); it++)
+    {
+        std::cout << it->first << " => " << it->second << std::endl;
+    }
+
+    
+}
+
+std::string cgi::getResponse()
+{
+    return this->response;
+}
+
+
+void cgi::excuteCgi()
+{
+    if (pipe(pipefd) == -1)
+    {
+        perror("pipe");
+        return;
+    }
+    cpid = fork();
+    if (cpid == -1)
+    {
+        perror("fork");
+        return;
+    }
+    if (cpid == 0)
+    { /* Child reads from pipe */
+        close(pipefd[1]); /* Close unused write end */
+        dup2(pipefd[0], STDIN_FILENO);
+        dup2(pipefd[1], STDOUT_FILENO);
+        dup2(pipefd[1], STDERR_FILENO);
+        close(pipefd[0]);
+        execve(argv[0], argv, envp);
+        perror("execve");
+        exit(EXIT_FAILURE);
     }
     else
-    {
-        close(pipe_fd[1]);
-        char buf[1024];
-        std::string ret;
-        while (1)
-        {
-            int n = read(pipe_fd[0], buf, 1024);
-            if (n == 0)
-                break;
-            buf[n] = '\0';
-            ret += buf;
-        }
-        close(pipe_fd[0]);
-        waitpid(pid, &status, 0);
-        delete[] argv[0];
-        delete[] argv[1];
-        delete[] argv;
-        delete[] env;
-        delete[] pipe_fd;
-        return ret;
+    { /* Parent writes argv[1] to pipe */
+        close(pipefd[0]); /* Close unused read end */
+        write(pipefd[1], this->body.c_str(), this->body.size());
+        close(pipefd[1]); /* Reader will see EOF */
+        wait(NULL);       /* Wait for child */
+        std::string tmp;
+        while (read(pipefd[0], &buf, 1) > 0)
+            tmp += buf;
+        this->response = tmp;
     }
 }
