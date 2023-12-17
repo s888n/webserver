@@ -82,29 +82,17 @@ void Client::readbody()
 void Client::sendResponse()
 {
     signal(SIGPIPE, SIG_IGN);
-    std::string *tmp = NULL;
-    size_t pos = 0;
+    // std::string *tmp = NULL;
+    // size_t pos = 0;
     if (_errorCode == 0)
         _errorCode = 200;
     _statusCode = _errorCode;
-    if ((tmp = getHeader("Range")))
-    {
-        std::stringstream ss;
-        *tmp = tmp->substr(tmp->find("=") + 1);
-        ss << *tmp;
-        ss >> pos;
-        sendRangeBody(_socket, pos);
-    }
+    if (_isheadSend == false)
+        sendHeaders(_socket);
+    else if (isBodyString == true)
+        sendBodyString(_socket);
     else
-    {
-        if (_isheadSend == false)
-            sendHeaders(_socket);
-        else if (isBodyString == true)
-            sendBodyString(_socket);
-        else
-            sendBody(_socket);
-        timestamp = getTime();
-    }
+        sendBody(_socket);
     timestamp = time(NULL);
 }
 
