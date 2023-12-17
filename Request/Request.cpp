@@ -226,7 +226,7 @@ void Request::tryFiles()
 
 void Request::findlocation()
 {
-     std::string tmp;
+    std::string tmp;
     tmp = _headers["Path"];
     if(tmp.back() != '/')
         tmp += "/";
@@ -504,7 +504,7 @@ void Request::matchCgi()
     if(_isCgi == false)
         return ;
     if(std::find(_locationCgi->methods.begin(), _locationCgi->methods.end(), _headers["Method"]) == _locationCgi->methods.end())
-       return (_isCgi = false ,void());
+        return (_isCgi = false ,void());
 
 
     if(_headers["Method"] == "POST")

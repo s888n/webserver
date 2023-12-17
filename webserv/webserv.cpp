@@ -116,6 +116,7 @@ void webserv::run()
     while (true)
     {
         pollRevents();
+        std::cout << "pollfds.size() = " << pollfds.size() << std::endl;
         for (size_t i = 0; i < pollfds.size(); i++)
         {
             //pollError(pollfds[i], i);
