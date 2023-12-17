@@ -157,6 +157,7 @@ void webserv::closeClient(int fd)
         if(pollfds[i].fd == fd)
         {
             close(fd);
+            std::cout << "closeClient fd : "<< fd << std::endl;
             pollfds.erase(pollfds.begin() + i);
             break;
         }
