@@ -60,7 +60,6 @@ void cgi::parseEnv(std::string request)
 
 void cgi::excuteCgi()
 {
-    // return the result of the script in response
     int pipefd[2];
     pid_t cpid;
     char buf;
@@ -78,31 +77,28 @@ void cgi::excuteCgi()
         return;
     }
     cpid = fork();
-    if (cpid == -1)
+    if (cpid < 0 )
     {
         perror("fork");
         return;
     }
     if (cpid == 0)
-    {                     /* Child reads from pipe */
-        close(pipefd[1]); /* Close unused write end */
-        dup2(pipefd[0], STDIN_FILENO);
+    {
+        close(pipefd[0]); 
         dup2(pipefd[1], STDOUT_FILENO);
-        dup2(pipefd[1], STDERR_FILENO);
-        close(pipefd[0]);
+        close(pipefd[1]);
         execve(argv[0], argv, envp);
-        perror("execve");
+        perror("execve Failed");
         exit(EXIT_FAILURE);
     }
     else
     {                     /* Parent writes argv[1] to pipe */
-        close(pipefd[0]); /* Close unused read end */
-        write(pipefd[1], this->body.c_str(), this->body.size());
-        close(pipefd[1]); /* Reader will see EOF */
-        wait(NULL);       /* Wait for child */
+        close(pipefd[1]); /* Close unused read end */
+        wait(NULL);
         std::string tmp;
         while (read(pipefd[0], &buf, 1) > 0)
             tmp += buf;
+        close(pipefd[0]); /* Reader will see EOF */
         this->response = tmp;
         delete[] argv[0];
         delete[] argv[1];
