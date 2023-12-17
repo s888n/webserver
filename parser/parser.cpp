@@ -509,7 +509,7 @@ location parser::parseLocation(std::string &lb,server &server)
     
     location.path = extractPath(lb);
     //if path ends with .py or .php cgi = true
-    if(location.path.find(".py") != std::string::npos || location.path.find(".php") != std::string::npos)
+    if(location.path.find(".py") != std::string::npos || location.path.find(".js") != std::string::npos)
         location.isCgi = true;
     else
         location.isCgi = false;
