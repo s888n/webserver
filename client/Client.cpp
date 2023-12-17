@@ -230,6 +230,9 @@ void Client::parseBinaryData()
         filename = generateRandomString();
         path += filename;
     }
+    //if the file already exists, return ;
+    else if (stat(_pathFile.c_str(), &filehelp) == 0)
+        throw(_errorCode = 409, _isError = true, "no idont think so");
     else
         path = _pathFile;
     createFile(path);
