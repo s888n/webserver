@@ -24,7 +24,7 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
     client.addrlen = sizeof(client.addr);
     client._servers = &servers;
     client._socket  = Accept(server_pollfd.fd, (struct sockaddr *)&client.addr, &client.addrlen);
-    if(client._socket == -1)
+    if(client._socket == -1 )
         return;
     client.timestamp = getTime();
     Fcntl(client._socket, F_SETFL, O_NONBLOCK);
@@ -55,8 +55,17 @@ void webserv::readFromClient(struct pollfd &pollfd)
             return;
         client->readRequest();
          
-        if(client->getIsReadBody() == false && client->getIsParsed() == true)
+        if(client->getIsReadBody() == false && client->getIsParsed() == true && client->_isCgi == false)
+        {
             pollfd.events = POLLOUT;
+            client->_locationResponse = client->_location;
+            if(client->_locationResponse->isCgi == true)
+            {
+                client->_bodyResponse = client->_body;
+                client->isBodyString = true;
+                client->_file = "/";
+            }
+        }
 
     }catch(const char *e)
     {
@@ -116,8 +125,7 @@ void webserv::run()
     while (true)
     {
         pollRevents();
-        std::cout << "pollfds.size() = " << pollfds.size() << std::endl;
-        for (size_t i = 0; i < pollfds.size(); i++)
+        for (size_t i = 0; i < pollfds.size() ; i++)
         {
             //pollError(pollfds[i], i);
             if(pollfds[i].revents == 0)
@@ -134,7 +142,7 @@ void webserv::run()
             // else
             //     closeClient(pollfds[i].fd);
         }
-        // checkTimeout();
+        checkTimeout();
     }
 }
 Client *webserv::getClient(int fd)
@@ -157,7 +165,6 @@ void webserv::closeClient(int fd)
         if(pollfds[i].fd == fd)
         {
             close(fd);
-            std::cout << "closeClient fd : "<< fd << std::endl;
             pollfds.erase(pollfds.begin() + i);
             break;
         }
@@ -168,9 +175,9 @@ void webserv::checkTimeout()
     for (size_t i = 0; i < clients.size(); i++)
     {
         if (getTime() - clients[i].timestamp > TIMEOUT)
-        {   
+        {
+            std::cout << "timeout" << std::endl;
             closeClient(clients[i]._socket);
-            i--;
         }
     }
 }

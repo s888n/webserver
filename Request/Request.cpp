@@ -18,6 +18,7 @@ Request::Request()
     _isCgi = false;
     _isNotRemove = false;
     _locationCgi = NULL;
+    _cgi = NULL;
 
 }
 
@@ -492,8 +493,11 @@ void Request::matchCgi()
         {
             _isCgi = true;
             _locationCgi = &_server->locations[i];
+            _location  = _locationCgi;
             realpath(_locationCgi->cgi_path.c_str(),hold1);
-            realpath(_headers["Path"].c_str(),hold2);
+            tmp = _headers["Path"];
+            tmp = _locationCgi->root + tmp;
+            realpath(tmp.c_str(),hold2);
             cgi_path = hold1;
             path = hold2;
             if(path.find(cgi_path) != 0)
@@ -505,8 +509,6 @@ void Request::matchCgi()
         return ;
     if(std::find(_locationCgi->methods.begin(), _locationCgi->methods.end(), _headers["Method"]) == _locationCgi->methods.end())
         return (_isCgi = false ,void());
-
-
     if(_headers["Method"] == "POST")
         _isReadBody = true;
     stat(path.c_str(), &_stat);

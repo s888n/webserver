@@ -145,9 +145,9 @@ void Response::sendHeaders(int fd)
 
 void Response::sendBody(int fd)
 {
-    char buffer[500];
+    char buffer[1500];
     int ret;
-    fileSend.read(buffer, 500);
+    fileSend.read(buffer, 1500);
     ret = fileSend.gcount();
     if(ret <=  0 )
     {
@@ -170,47 +170,47 @@ bool Response::getIsheadSend() const
     return _isheadSend;
 }
 
-void Response::sendRangeBody(int fd ,size_t start)
-{
-    char buffer[10240];
-    int ret;
-    struct stat filestat;
-    std::string tmp;
-    stat(_file.c_str(), &filestat);
-    fileSend.open(_file, std::ios::in | std::ios::binary);
-    if(!fileSend.is_open())
-    {
-        _isBodyEnd = true;
-        return;
-    }
-    fileSend.seekg(start);
-    fileSend.read(buffer, 10240);
-    ret = fileSend.gcount();
-    if(ret <=  0)
-    {
-        fileSend.close();
-         _isBodyEnd = true;
-        return;
-    }
-    _header = "HTTP/1.1 206 Partial Content\r\n";
-    size_t pos = start + ret;
-    if(pos >= static_cast<size_t>(filestat.st_size))
-        pos = filestat.st_size - 1;
-    tmp = "Content-Type: application/octet-stream\r\n"; 
-    if(_file.find_last_of('.') != std::string::npos)
-        if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
-            tmp = "Content-Type: " +  _MimeType[_file.substr(_file.find_last_of('.'))] + "\r\n"; 
-    _header += tmp;
-    _header += "Accept-Ranges: bytes\r\n";
-    _header += "Connection: close\r\n"; 
-    _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(pos) + "/" + std::to_string(filestat.st_size) + "\r\n";
-    _header += "Content-Length: " + std::to_string(ret) + "\r\n";
-    _header += "\r\n";
-    _header.append(buffer, ret);
-    ret = send(fd,_header.c_str(),_header.size(),0);
-    fileSend.close();
-    _isBodyEnd = true;
-}
+// void Response::sendRangeBody(int fd ,size_t start)
+// {
+//     char buffer[10240];
+//     int ret;
+//     struct stat filestat;
+//     std::string tmp;
+//     stat(_file.c_str(), &filestat);
+//     fileSend.open(_file, std::ios::in | std::ios::binary);
+//     if(!fileSend.is_open())
+//     {
+//         _isBodyEnd = true;
+//         return;
+//     }
+//     fileSend.seekg(start);
+//     fileSend.read(buffer, 10240);
+//     ret = fileSend.gcount();
+//     if(ret <=  0)
+//     {
+//         fileSend.close();
+//          _isBodyEnd = true;
+//         return;
+//     }
+//     _header = "HTTP/1.1 206 Partial Content\r\n";
+//     size_t pos = start + ret;
+//     if(pos >= static_cast<size_t>(filestat.st_size))
+//         pos = filestat.st_size - 1;
+//     tmp = "Content-Type: application/octet-stream\r\n"; 
+//     if(_file.find_last_of('.') != std::string::npos)
+//         if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
+//             tmp = "Content-Type: " +  _MimeType[_file.substr(_file.find_last_of('.'))] + "\r\n"; 
+//     _header += tmp;
+//     _header += "Accept-Ranges: bytes\r\n";
+//     _header += "Connection: close\r\n"; 
+//     _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(pos) + "/" + std::to_string(filestat.st_size) + "\r\n";
+//     _header += "Content-Length: " + std::to_string(ret) + "\r\n";
+//     _header += "\r\n";
+//     _header.append(buffer, ret);
+//     ret = send(fd,_header.c_str(),_header.size(),0);
+//     fileSend.close();
+//     _isBodyEnd = true;
+// }
  Response::~Response()
  {
      if(fileSend.is_open())
@@ -260,7 +260,7 @@ void Response::fillResponseMap()
     // _headersResponse["Host"] = _headersRequest["Host"];
 
     _headersResponse["Accept-Ranges"] = "bytes";
-    _headersResponse["Connection"] = "close";
+    _headersResponse["Connection"] = "keep-alive";
 
 }
 void  Response::sendExaption(int fd, int status)

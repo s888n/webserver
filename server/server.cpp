@@ -76,7 +76,7 @@ void server::createSocket(void)
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr(host.c_str());
     Bind(fd, (struct sockaddr *)&addr, sizeof(addr));
-    Listen(fd, SOMAXCONN);
+    Listen(fd, 1024);
 
 }
 

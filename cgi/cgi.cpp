@@ -3,9 +3,7 @@
 cgi::cgi(std::string _compiler, std::string _scriptPath, std::string _request)
 {
     if (_compiler.size() == 0 || _scriptPath.size() == 0 || _request.size() == 0)
-        throw std::invalid_argument("CGI : invalid arguments");
-    if (scriptPath.find(".py") == std::string::npos && scriptPath.find(".js") == std::string::npos)
-        throw std::invalid_argument("CGI : invalid script path");
+        throw "CGI : invalid arguments";
     this->compiler = _compiler;
     this->request = _request;
     this->body = _request.substr(_request.find("\r\n\r\n") + 4);

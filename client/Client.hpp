@@ -4,6 +4,7 @@
 #include "../Request/Request.hpp"
 #include "../Response/Response.hpp"
 #include "../server/server.hpp"
+#include "../cgi/cgi.hpp"
 #include <fstream>
 #include <sstream>
 #include <sys/socket.h>

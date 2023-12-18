@@ -17,11 +17,15 @@ void Client::readRequest()
         readheader();
     else if (_isReadBody == true)
         readbody();
-    else if(_isCgi == true)
+     if(_isCgi == true)
     {
-        
+        _cgi = new cgi(_locationCgi->compiler, _pathFile, _request);
+        _body = _cgi->getResponse();
+        delete _cgi;
+        _isCgi = false;
+        _locationResponse = _locationCgi;
     }
-    
+
 }
 
 void Client::readheader()
@@ -47,7 +51,8 @@ void Client::readheader()
     uriToPath();
     _headersRequest = _headers;
     _isparsed = true;
-    tmp = _headers["path"];
+    tmp = _headers["Path"];
+
     if(tmp.size() >= 3 && (tmp.substr(tmp.size() - 3) == ".py" || tmp.substr(tmp.size() - 3) == ".js" ))
         matchCgi();
     if(_isCgi == true)
@@ -73,10 +78,16 @@ void Client::readbody()
         else
             readContentLength(_socket);
     }
-    if(_isCgi == true)
+    if(_isCgi == true && _isReadBody == true)
+    {
         _request += _body;
+        _isReadBody = false;
+    }
     else if (isBodyEnd == true)
+    {
         parseRequestBody();
+        _isReadBody = false;
+    }
 }
 
 void Client::sendResponse()

@@ -6,6 +6,7 @@
 #include <map>
 class location;
 class server;
+class cgi;
 class Request
 {
     protected:
@@ -18,10 +19,11 @@ class Request
         std::ofstream *_os;
         std::string _pathDir;
         size_t      _contentLength;
-        bool        _isCgi;
         location    *_locationCgi;
     public:
 
+        bool        _isCgi;
+        cgi         *_cgi;
         location    *_location;
         bool        _isError;
         std::string _pathFile;
