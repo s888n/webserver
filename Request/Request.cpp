@@ -476,11 +476,10 @@ void  Request::readContentLength(int fd)
 void Request::matchCgi()
 {
     std::string tmp;
-    char hold1[PATH_MAX];
-    char hold2[PATH_MAX];
     std::string cgi_path;
     std::string path;
     struct stat     _stat;
+    std::string filename;
     
     tmp = _headers["Path"];
     tmp = tmp.substr(tmp.find_last_of('.'));
@@ -492,14 +491,12 @@ void Request::matchCgi()
             _isCgi = true;
             _locationCgi = &_server->locations[i];
             _location  = _locationCgi;
-            realpath(_locationCgi->cgi_path.c_str(),hold1);
             tmp = _headers["Path"];
-            tmp = _locationCgi->root + tmp;
-            realpath(tmp.c_str(),hold2);
-            cgi_path = hold1;
-            path = hold2;
-            if(path.find(cgi_path) != 0)
+            filename = tmp.substr(tmp.find_last_of('/') + 1);
+            if(tmp.find("cgi-bin/") == std::string::npos)
                 _isCgi = false;
+            else
+                path = _locationCgi->cgi_path + "/"+filename;
             break ;
         }
     }
