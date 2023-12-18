@@ -54,7 +54,6 @@ void webserv::readFromClient(struct pollfd &pollfd)
         if (client == NULL)
             return;
         client->readRequest();
-         
         if(client->getIsReadBody() == false && client->getIsParsed() == true && client->_isCgi == false)
         {
             pollfd.events = POLLOUT;
@@ -125,6 +124,7 @@ void webserv::run()
     while (true)
     {
         pollRevents();
+ 
         for (size_t i = 0; i < pollfds.size() ; i++)
         {
             //pollError(pollfds[i], i);

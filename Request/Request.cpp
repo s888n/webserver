@@ -426,23 +426,21 @@ void Request::readBoundry(int fd)
 {
     char buffer[3040];
     int ret = 1;
-    ret = recv(fd, buffer, 3040, 0);
-    if(ret > 0)
+
+    if(_body.find("--"+_boundry +"--") != std::string::npos)
     {
-        timestamp = time(NULL);
-        _body.append(buffer, ret);
-        _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
-        if(_body.find("--"+_boundry +"--") != std::string::npos)
             isBodyEnd = true;
+            return;
     }
-
+    ret = recv(fd, buffer, 3040, 0);
+    if(ret <= 0)
+        throw (_errorCode = 501,_isError = true ,"return"); // Bad Request
+    timestamp = time(NULL);
+    _body.append(buffer, ret);
+    _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
+    if(_body.find("--"+_boundry +"--") != std::string::npos)
+        isBodyEnd = true;
 }
-
-void Request::readBoundrywithChunked()
-{
-
-}
-
 
 void Request::readChunked(int fd)
 {
@@ -451,8 +449,8 @@ void Request::readChunked(int fd)
     ret = recv(fd, buffer, 3040, 0);
     if(ret > 0)
     {
-    timestamp = time(NULL);
-    _body.append(buffer, ret);
+        timestamp = time(NULL);
+        _body.append(buffer, ret);
     if(_body.find("0\r\n\r\n") != std::string::npos)
         isBodyEnd = true;
     }

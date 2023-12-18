@@ -17,7 +17,7 @@ void Client::readRequest()
         readheader();
     else if (_isReadBody == true)
         readbody();
-     if(_isCgi == true)
+    if(_isparsed == true &&  _isCgi == true  && _isReadBody == false)
     {
         _cgi = new cgi(_locationCgi->compiler, _pathFile, _request);
         _body = _cgi->getResponse();
@@ -25,21 +25,20 @@ void Client::readRequest()
         _isCgi = false;
         _locationResponse = _locationCgi;
     }
-
 }
-
 void Client::readheader()
 {
-    char buffer[1024];
+    char buffer[100];
     std::string tmp;
     int ret = 1;
     if (!_headerIsRecv)
     {
-        ret = recv(_socket, buffer, 1024, 0);
+        ret = recv(_socket, buffer, 100, 0);
         if (ret <= 0)
             return;
         _request.append(buffer, ret);
         timestamp = getTime();
+
     }
     timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
@@ -52,9 +51,9 @@ void Client::readheader()
     _headersRequest = _headers;
     _isparsed = true;
     tmp = _headers["Path"];
-
     if(tmp.size() >= 3 && (tmp.substr(tmp.size() - 3) == ".py" || tmp.substr(tmp.size() - 3) == ".js" ))
         matchCgi();
+       
     if(_isCgi == true)
         return;
     matchlocation();
@@ -74,11 +73,11 @@ void Client::readbody()
         if (getHeader("Transfer-Encoding") != NULL)
             readChunked(_socket);
         else if (getHeader("Content-Type") != NULL && getHeader("Content-Type")->find("boundary=") != std::string::npos)
-            readBoundry(_socket);
+                readBoundry(_socket);
         else
             readContentLength(_socket);
     }
-    if(_isCgi == true && _isReadBody == true)
+    if(_isCgi == true && isBodyEnd == true)
     {
         _request += _body;
         _isReadBody = false;

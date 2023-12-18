@@ -50,6 +50,7 @@ class Client : public Request, public Response
         size_t fileCount();
         ~Client();
         void parseHyprid();
+        void checkIsBodyEnd();
 };
 
 #endif
