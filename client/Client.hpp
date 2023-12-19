@@ -19,6 +19,7 @@ class Client : public Request, public Response
         std::string _request;
         bool _isparsed;
         std::string _host;
+        bool _toParseBody;
         // int _port;
     public:
         std::vector<server> *_servers;
@@ -51,6 +52,7 @@ class Client : public Request, public Response
         ~Client();
         void parseHyprid();
         void checkIsBodyEnd();
+        void  readContentLength(int fd);
 };
 
 #endif

@@ -241,6 +241,7 @@ Response& Response::operator=(Response const &main)
         _isConnectionClose = main._isConnectionClose;
         _bodyResponse = main._bodyResponse;
         _locationResponse = main._locationResponse;
+        _servername = main._servername;
     }
     return *this;
 }
@@ -256,11 +257,11 @@ void Response::fillResponseMap()
     else
          _headersResponse["Content-Type"] = "application/octet-stream";  
     }
-    _headersResponse["Server"] = "Webserve";
+    _headersResponse["Server"] = _servername;
     // _headersResponse["Host"] = _headersRequest["Host"];
 
     _headersResponse["Accept-Ranges"] = "bytes";
-    _headersResponse["Connection"] = "keep-alive";
+    _headersResponse["Connection"] = "close";
 
 }
 void  Response::sendExaption(int fd, int status)

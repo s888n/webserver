@@ -20,6 +20,8 @@ class Request
         std::string _pathDir;
         size_t      _contentLength;
         location    *_locationCgi;
+        bool       _isNotFirst;
+        
     public:
 
         bool        _isCgi;
@@ -47,7 +49,6 @@ class Request
         void readBoundry(int fd);
         void readBoundrywithChunked(); 
         void readChunked(int fd);
-        void  readContentLength(int fd);
 
 
         void findlocation();

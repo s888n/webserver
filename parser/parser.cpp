@@ -379,8 +379,8 @@ size_t parser::setMaxBodySize(stringVector &values)
     values[1].erase(values[1].find_first_of("mkg"));
     }
     size_t max_body_size = std::stoul(values[1].c_str()) * magnitude;
-    if (max_body_size > 100000000)
-        max_body_size = 100000000;
+    // if (max_body_size > 100000000)
+    //     max_body_size = 100000000;
     return max_body_size;
 }
 

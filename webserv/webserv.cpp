@@ -24,7 +24,7 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
     client.addrlen = sizeof(client.addr);
     client._servers = &servers;
     client._socket  = Accept(server_pollfd.fd, (struct sockaddr *)&client.addr, &client.addrlen);
-    if(client._socket == -1 )
+    if(client._socket <= 0 )
         return;
     client.timestamp = getTime();
     Fcntl(client._socket, F_SETFL, O_NONBLOCK);
@@ -32,6 +32,7 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
     struct pollfd pollfd;
     pollfd.fd = client._socket;
     pollfd.events = POLLIN;
+    pollfd.revents = 0;
     pollfds.push_back(pollfd);
     clients.push_back(client);
 }
@@ -142,7 +143,7 @@ void webserv::run()
             // else
             //     closeClient(pollfds[i].fd);
         }
-        checkTimeout();
+        // checkTimeout();
     }
 }
 Client *webserv::getClient(int fd)

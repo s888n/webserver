@@ -22,6 +22,7 @@ class Response
         bool            _isheadSend;
         bool           _isBodyEnd;
         bool            _isConnectionClose;
+        std::string     _servername;
 
     public:
         location        *_locationResponse;

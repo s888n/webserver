@@ -48,7 +48,7 @@
 
 #include "../client/Client.hpp"
 
-#define TIMEOUT 3
+#define TIMEOUT 10
 #define BUFFER_SIZE 1024
 
 class server;

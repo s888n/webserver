@@ -19,6 +19,7 @@ Request::Request()
     _isNotRemove = false;
     _locationCgi = NULL;
     _cgi = NULL;
+    _isNotFirst = false;
 
 }
 
@@ -455,22 +456,7 @@ void Request::readChunked(int fd)
         isBodyEnd = true;
     }
 }
-void  Request::readContentLength(int fd)
-{
-    char buffer[3040];
-    int ret = 1;
-    ret = recv(fd, buffer, 3040, 0);
-    if(ret > 0)
-    {
-        timestamp = time(NULL);
-        _body.append(buffer, ret);
-        if(_body.length() == _contentLength)
-            isBodyEnd = true;
-        else if(_body.length() > _contentLength || _contentLength > _location->max_body_size)
-            throw (_errorCode = 413 ,"return"); // Request Entity Too Large
 
-    }
-}
 
 
 void Request::matchCgi()

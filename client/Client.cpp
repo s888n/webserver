@@ -28,16 +28,17 @@ void Client::readRequest()
 }
 void Client::readheader()
 {
-    char buffer[100];
+    char buffer[1];
     std::string tmp;
     int ret = 1;
     if (!_headerIsRecv)
     {
-        ret = recv(_socket, buffer, 100, 0);
+        ret = recv(_socket, buffer, 1, 0);
         if (ret <= 0)
             return;
         _request.append(buffer, ret);
         timestamp = getTime();
+        std::cout << "request: " << _request << std::endl;
 
     }
     timestamp = time(NULL);
@@ -121,9 +122,16 @@ server &Client::findServer()
         if (std::to_string(_servers->at(i).getPort()) == tmp_port || _servers->at(i).fd == serverFd)
             tmpServer.push_back(&_servers->at(i));
     for (size_t i = 0; i < tmpServer.size(); i++)
+    {
         for (size_t j = 0; j < tmpServer[i]->getServerNames().size(); j++)
+        {
             if (tmpServer[i]->getServerNames()[j] == tmp_host)
+            {
+                _servername = tmpServer[i]->getServerNames()[j];
                 return *tmpServer[i];
+            }
+        }
+    }
     return *tmpServer[0];
 }
 
@@ -276,6 +284,7 @@ void Client::parseChunkedData()
     createFile (path);
     throw (_errorCode = 201,_isError = true,"unchunked");
 }
+
 size_t Client::fileCount()
 {
     size_t count = 0;
@@ -356,6 +365,7 @@ void Client::parseMultipartData()
     }
     throw(_errorCode = 201, _isError = true, "good shit");
 }
+
 void Client::createFile(std::string path)
 {
     struct stat buffer;
@@ -368,6 +378,7 @@ void Client::createFile(std::string path)
     outfile << _body;
     outfile.close();
 }
+
 void Client::createFile(std::string name, std::string &fileContent)
 {
     struct stat buffer;
@@ -379,4 +390,19 @@ void Client::createFile(std::string name, std::string &fileContent)
     outfile << fileContent;
     outfile.close();
 
+}
+
+void  Client::readContentLength(int fd)
+{
+    char buffer[3040];
+    int ret = 1;
+    ret = recv(fd, buffer, 3040, 0);
+    if(ret <= 0)
+        throw (_errorCode = 404,_isError = true ,"return"); // Bad Request
+    timestamp = time(NULL);
+    _body.append(buffer, ret);
+    if(_body.length() == _contentLength)
+        isBodyEnd = true;
+    else if(_body.length() > _contentLength || _contentLength > _location->max_body_size)
+        throw (_errorCode = 413 ,"return"); // Request Entity Too Large
 }
