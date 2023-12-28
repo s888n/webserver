@@ -21,7 +21,7 @@
 
 class location
 {
-    private:
+    private: 
     public:
         bool autoindex;
         std::pair <int,std::string>_return;
