@@ -19,6 +19,7 @@ class cgi
     char **argv;
 
 public:
+    int statusCode;
     cgi(std::string _compiler, std::string _scriptPath, std::string _request);
     ~cgi();
     void excuteCgi();

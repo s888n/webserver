@@ -2,6 +2,7 @@
 
 cgi::cgi(std::string _compiler, std::string _scriptPath, std::string _request)
 {
+    statusCode = 0;
     if (_compiler.size() == 0 || _scriptPath.size() == 0 || _request.size() == 0)
         throw "CGI : invalid arguments";
     this->compiler = _compiler;
@@ -86,13 +87,13 @@ void cgi::excuteCgi()
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
         execve(argv[0], argv, envp);
-        perror("execve Failed");
+        // perror("execve Failed djkasdjk asdjk jaksdk ");
         exit(EXIT_FAILURE);
     }
     else
     {                     /* Parent writes argv[1] to pipe */
-        close(pipefd[1]); /* Close unused read end */
-        wait(NULL);
+        close(pipefd[1]);
+        waitpid(cpid,&statusCode,0);
         std::string tmp;
         while (read(pipefd[0], &buf, 1) > 0)
             tmp += buf;

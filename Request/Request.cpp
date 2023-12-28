@@ -20,6 +20,7 @@ Request::Request()
     _locationCgi = NULL;
     _cgi = NULL;
     _isNotFirst = false;
+    isBodyEnd = false;
 
 }
 
@@ -59,6 +60,19 @@ void Request::ParseRequest(std::string request)
     {
         _headers[request.substr(0,request.find(":"))] = request.substr(request.find(":") + 2, request.find("\r\n")-request.find(":") - 2);
         request = request.substr(request.find("\r\n") + 2);
+    }
+    if(_headers.find("Host") == _headers.end())
+        throw (_isError = true , "host not found");
+    if(_headers.find("Content-Length") != _headers.end())
+    {
+        std::stringstream ss;
+        ss << _headers["Content-Length"];
+        ss >> _contentLength;
+    }
+    if(_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
+    {
+        _isboundry = true;
+        _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
     }
 }
 
@@ -148,7 +162,6 @@ void Request::uriToPath()
     _headers["Path"] = tmp;
 }
 
-
 void Request::matchlocation()
 {
     std::string     pathreal,rootreal;
@@ -163,17 +176,20 @@ void Request::matchlocation()
     rootreal = hold2;
     if(pathreal.find(rootreal) != 0)
         throw (_errorCode = 400,_isError =true ,"method error");
+      
     if(_headers["Method"] == "GET")
         matchlocationForGET();
     else if(_headers["Method"] == "POST")
         matchlocationForPOST();
     else if(_headers["Method"] == "DELETE")
         matchlocationForDELETE();
+    
 }
 
 void Request::matchlocationForGET()
 {
     _isReadBody = false;
+       
     if(_location->isReturn == true)
         throw "return";
     if(std::find(_location->methods.begin(), _location->methods.end(), "GET") == _location->methods.end())
@@ -194,10 +210,16 @@ void Request::tryFiles()
         tmp = tmp.substr(0, tmp.length() - 1);
     tmp = tmp + _headers["Path"];
     stat(tmp.c_str(), &_stat);
-    fs.open(tmp.c_str(), std::fstream::in);
     if(S_ISDIR(_stat.st_mode))
     {
         _pathDir = tmp;
+        if(_headers["Path"].back() != '/')
+        {
+            _location->isReturn = true;
+            _location->_return.first = 301;
+            _location->_return.second = "http://" + _headers["Host"] + _headers["Path"] + "/";
+            throw "return";
+        }
         for(size_t i = 0; i < _location->indexes.size();i++)
         {
             std::string tmp2;
@@ -205,11 +227,10 @@ void Request::tryFiles()
                 tmp2 = tmp + _location->indexes[i];
             else
                 tmp2 = tmp + "/" + _location->indexes[i];
-            fs.open(tmp2.c_str(), std::fstream::in);
+            stat(tmp2.c_str(), &_stat);
             if(S_ISREG(_stat.st_mode))
             {
                 _pathFile = tmp2;
-                _location->autoindex = false;
                 return ;
             }
         }
@@ -239,7 +260,7 @@ void Request::findlocation()
         {
             if(tmp == _server->locations[i].path)
             {
-                _location = &_server->locations[i];
+                _mylocation = _server->locations[i];
                 break ;
             }
         }
@@ -250,6 +271,8 @@ void Request::findlocation()
         else
             tmp = tmp.substr(0, tmp.find_last_of('/') + 1);
     }
+    _location = &_mylocation;
+
 }
 
 void Request::matchlocationForPOST()
@@ -265,7 +288,7 @@ void Request::matchlocationForPOST()
         ss << _headers["Content-Length"];
         ss >> tmp;
         if(tmp > _location->max_body_size)
-            throw (_errorCode = 411,_isError =true ,"method error"); // Length Required
+            throw (_errorCode = 413,_isError =true ,"method error"); // Length Required
     }
     tryfilePost();
     _isReadBody = true;
@@ -276,7 +299,6 @@ void Request::tryfilePost()
 {
     struct stat     _stat;
     std::string     tmp;
-
     tmp = _location->root;
     if(tmp.back() == '/')
         tmp = tmp.substr(0, tmp.length() - 1);
@@ -286,6 +308,8 @@ void Request::tryfilePost()
         return (_pathFile = tmp,void());
     else if(S_ISREG(_stat.st_mode))
         throw (_errorCode = 409,_isError =true ,"method error");
+    else if(_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
+        throw (_errorCode = 404 ,_isError =true ,"method error");
     else
     {
         stat(tmp.substr(0,tmp.find_last_of('/')).c_str(), &_stat);
@@ -387,7 +411,6 @@ void Request::tryfileDelete()
         else
             throw (_errorCode = 404,_isError =true ,"method error");
     throw (_errorCode = 204 ,"method error");
-
 }
 
 void Request::matchlocationForDELETE()
@@ -398,66 +421,6 @@ void Request::matchlocationForDELETE()
         throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
     tryfileDelete();
 }
-
-
-void Request::parseBody()
-{
-    // std::stringstream ss;
-    // std::string *tmp = NULL;
-    // // tmp = getHeader("Content-Length");
-    // // if(tmp)
-    // // {
-    // //     ss << tmp->c_str();
-    // //     ss >> _contentLength;
-    // //     if(_contentLength < _body.length())
-    // //         return (_errorCode = 413 ,void()); // Request Entity Too Large
-    // // }
-    // tmp = getHeader("Content-Type");
-    // if(tmp)
-    // {
-    //     if(tmp->find("boundary=") != std::string::npos)
-    //     {
-    //         _isboundry = true;
-    //         _boundry = tmp->substr(tmp->find("boundary=") + 9);
-    //     }
-    // }
-}
-
-void Request::readBoundry(int fd)
-{
-    char buffer[3040];
-    int ret = 1;
-
-    if(_body.find("--"+_boundry +"--") != std::string::npos)
-    {
-            isBodyEnd = true;
-            return;
-    }
-    ret = recv(fd, buffer, 3040, 0);
-    if(ret <= 0)
-        throw (_errorCode = 501,_isError = true ,"return"); // Bad Request
-    timestamp = time(NULL);
-    _body.append(buffer, ret);
-    _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
-    if(_body.find("--"+_boundry +"--") != std::string::npos)
-        isBodyEnd = true;
-}
-
-void Request::readChunked(int fd)
-{
-    char buffer[3040];
-    int ret = 1;
-    ret = recv(fd, buffer, 3040, 0);
-    if(ret > 0)
-    {
-        timestamp = time(NULL);
-        _body.append(buffer, ret);
-    if(_body.find("0\r\n\r\n") != std::string::npos)
-        isBodyEnd = true;
-    }
-}
-
-
 
 void Request::matchCgi()
 {
@@ -500,5 +463,7 @@ void Request::matchCgi()
     }
     _isCgi = false;
 }
+
+
 
 

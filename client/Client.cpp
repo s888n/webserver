@@ -6,95 +6,249 @@ Client::Client() : Request(), Response()
     _isReadBody = false;
     _server = NULL;
     _servers = NULL;
+    _chunkedSize = 0 ;
+    _isreadFromClient = false;
+    _currentLength = 0;
+    isBodyString = false;
 }
 Client::~Client()
 {
+
 }
 
 void Client::readRequest()
 {
+    _isreadFromClient = false;
     if (_isparsed == false)
         readheader();
-    else if (_isReadBody == true)
+    if (_isReadBody == true)
         readbody();
     if(_isparsed == true &&  _isCgi == true  && _isReadBody == false)
     {
         _cgi = new cgi(_locationCgi->compiler, _pathFile, _request);
-        _body = _cgi->getResponse();
+        std::string tmp;
+        if(_cgi->statusCode != 0)
+            throw (_errorCode = 500, _isError = true, "return");
+        
+        tmp = _cgi->getResponse();
+        if(tmp.size() > 0 && tmp.find("\r\n\r\n") != std::string::npos)
+        {
+            _body = tmp.substr(tmp.find("\r\n\r\n") + 4);
+            tmp = tmp.substr(0, tmp.find("\r\n\r\n") + 4);
+            while(tmp != "\r\n" && tmp != "")
+            {
+                _headersResponse[tmp.substr(0, tmp.find(":"))] = tmp.substr(tmp.find(":") + 1, tmp.find("\r\n") - tmp.find(":") - 1);
+                std::cout << tmp.substr(0, tmp.find(":")) << " : " << tmp.substr(tmp.find(":") + 1, tmp.find("\r\n") - tmp.find(":") - 1) << std::endl;
+                tmp = tmp.substr(tmp.find("\r\n") + 2);
+                std::cout << "hamza : " << tmp << std::endl;
+            }
+        }else
+            _body = _cgi->getResponse();
         delete _cgi;
         _isCgi = false;
         _locationResponse = _locationCgi;
+
     }
 }
+
 void Client::readheader()
 {
-    char buffer[1];
+    char buffer[1000];
     std::string tmp;
     int ret = 1;
     if (!_headerIsRecv)
     {
-        ret = recv(_socket, buffer, 1, 0);
+        _isreadFromClient = true;
+        ret = recv(_socket, buffer, 1000, 0);
         if (ret <= 0)
             return;
         _request.append(buffer, ret);
         timestamp = getTime();
-        std::cout << "request: " << _request << std::endl;
-
     }
     timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
+    _isparsed = true;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
     _server = &findServer();
     _body = _request.substr(_request.find("\r\n\r\n") + 4);
+    _request = _request.substr(0, _request.find("\r\n\r\n") + 4);
     checkRequest();
     uriToPath();
     _headersRequest = _headers;
-    _isparsed = true;
     tmp = _headers["Path"];
     if(tmp.size() >= 3 && (tmp.substr(tmp.size() - 3) == ".py" || tmp.substr(tmp.size() - 3) == ".js" ))
         matchCgi();
-       
     if(_isCgi == true)
         return;
     matchlocation();
-    if (getHeader("Content-Length") != NULL)
-    {
-        std::stringstream ss;
-        ss << getHeader("Content-Length")->c_str();
-        ss >> _contentLength;
-    }
     _file = _pathFile;
+}
+
+void Client::readHyprid(int fd)
+{   
+    char buffer[3000];
+    int ret = 1;
+    std::stringstream ss;
+    if(_isreadFromClient == false)
+    {
+        ret = recv(fd, buffer, 3000, 0);
+        if(ret <= 0)
+            return;
+        _body.append(buffer, ret);
+        _isreadFromClient = true;
+        timestamp = time(NULL);
+    }
+
+   while(_body.size() > 0)
+   {
+        if(_chunkedSize == 0 && _body.find("\r\n") != std::string::npos)
+        {
+            if(_body.find("0\r\n\r\n") == 0)
+            {
+                 
+                _body.erase(0, _body.find("\r\n\r\n") + 4);
+                isBodyEnd = true;
+                break;
+            }
+            ss << std::hex << _body.substr(0, _body.find("\r\n"));
+            ss >> _chunkedSize;
+            _body.erase(0, _body.find("\r\n") + 2);
+            ss.clear();
+        }
+        if(_chunkedSize > 0 && _body.size() > 0)
+        {
+            if(_body.size() >= _chunkedSize + 2)
+            {
+                _bodyHyprid += _body.substr(0, _chunkedSize);
+                _body.erase(0, _chunkedSize + 2);
+                _chunkedSize = 0;
+            }else
+                break;
+        }else
+            break;
+   }
+
+    std::string midBoundary = "--" + _boundry + "\r\n";
+    std::string endBoundary = "--" + _boundry + "--\r\n";
+   
+    while( _bodyHyprid.size() > 0)
+    {
+        if(_isNotFirst == false && _bodyHyprid.find(midBoundary) == 0 && _bodyHyprid.find("\r\n\r\n") != std::string::npos) 
+        {
+            _fileupload = getFileName(_bodyHyprid.substr(0, _bodyHyprid.find("\r\n\r\n")));
+            _filesUploaded.push_back(_fileupload);
+            _bodyHyprid.erase(0, _bodyHyprid.find("\r\n\r\n") + 4);
+            _isNotFirst = true;
+        }
+        if(_isNotFirst == true)
+        {
+            if(_bodyHyprid.find(midBoundary) != std::string::npos)
+            {
+                std::ofstream outfile(_fileupload.c_str(), std::ios::app);
+                if (!outfile.is_open())
+                {
+                    remove(_fileupload.c_str());
+                    throw (_errorCode = 501,_isError = true ,"return"); // Bad Request
+                }
+                outfile << _bodyHyprid.substr(0, _bodyHyprid.find(midBoundary));
+                _currentLength += _bodyHyprid.substr(0, _bodyHyprid.find(midBoundary)).size();
+                if(_currentLength > _location->max_body_size)
+                {
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 413 ,"return"); // Request Entity Too Large
+                }
+                outfile.close();
+                _bodyHyprid.erase(0, _bodyHyprid.find(midBoundary));
+                _isNotFirst = false;
+            }
+            else if(_bodyHyprid.find(endBoundary) != std::string::npos)
+            {
+                std::ofstream outfile(_fileupload.c_str(), std::ios::app);
+                if (!outfile.is_open())
+                {
+                    remove(_fileupload.c_str());
+                    throw (_errorCode = 501,_isError = true ,"return"); // Bad Request
+                }
+                outfile << _bodyHyprid.substr(0, _bodyHyprid.find(endBoundary));
+                _currentLength += _bodyHyprid.substr(0, _bodyHyprid.find(endBoundary)).size();
+                if(_currentLength > _location->max_body_size)
+                {
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 413 ,"return"); // Request Entity Too Large
+                }
+                outfile.close();
+                _bodyHyprid.erase(0, _bodyHyprid.find(endBoundary));
+                _bodyHyprid.clear();
+                isBodyEnd = true;
+                throw(_errorCode = 201, _isError = true, "binary");
+            }
+            else if(_bodyHyprid.size() >= 2000)
+            {
+                std::ofstream outfile(_fileupload.c_str(), std::ios::app);
+                if (!outfile.is_open())
+                {
+                    remove(_fileupload.c_str());
+                    throw (_errorCode = 501,_isError = true ,"return"); // Bad Request
+                }
+                outfile << _bodyHyprid.substr(0, _bodyHyprid.size() - 1000);
+                _currentLength += _bodyHyprid.substr(0, _bodyHyprid.size() - 1000).size();
+                if(_currentLength > _location->max_body_size)
+                {
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 413 ,"return"); // Request Entity Too Large
+                }
+                outfile.close();
+                _bodyHyprid.erase(0, _bodyHyprid.size() - 1000);
+            }
+            else
+                break;
+        }else
+            break;
+    }
 }
 
 void Client::readbody()
 {
-    if (isBodyEnd == false)
+       
+    if (isBodyEnd == false && _isCgi == false)
     {
-        if (getHeader("Transfer-Encoding") != NULL)
+        if(getHeader("Transfer-Encoding") != NULL && getHeader("Content-Type") != NULL && getHeader("Content-Type")->find("boundary=") != std::string::npos)
+            readHyprid(_socket);
+        else if (getHeader("Transfer-Encoding") != NULL)
             readChunked(_socket);
         else if (getHeader("Content-Type") != NULL && getHeader("Content-Type")->find("boundary=") != std::string::npos)
-                readBoundry(_socket);
+            readBoundry(_socket);
         else
             readContentLength(_socket);
+
     }
-    if(_isCgi == true && isBodyEnd == true)
+    if(_isCgi == true)
     {
-        _request += _body;
-        _isReadBody = false;
-    }
-    else if (isBodyEnd == true)
-    {
-        parseRequestBody();
-        _isReadBody = false;
+
+        if (isBodyEnd == false)
+        {
+            if (getHeader("Transfer-Encoding") != NULL)
+                readChunkedCgi(_socket);
+            else if (getHeader("Content-Type") != NULL && getHeader("Content-Type")->find("boundary=") != std::string::npos)
+                readBoundryCgi(_socket);
+            else
+                readContentLengthCgi(_socket);
+        }
+        if(isBodyEnd == true)
+        {
+            _request += _body;
+            _isReadBody = false;
+        }
     }
 }
 
 void Client::sendResponse()
 {
     signal(SIGPIPE, SIG_IGN);
-    // std::string *tmp = NULL;
-    // size_t pos = 0;
     if (_errorCode == 0)
         _errorCode = 200;
     _statusCode = _errorCode;
@@ -104,7 +258,6 @@ void Client::sendResponse()
         sendBodyString(_socket);
     else
         sendBody(_socket);
-    timestamp = time(NULL);
 }
 
 server &Client::findServer()
@@ -132,6 +285,7 @@ server &Client::findServer()
             }
         }
     }
+    _servername = tmpServer[0]->getServerNames()[0];
     return *tmpServer[0];
 }
 
@@ -178,30 +332,10 @@ void Client::parseHyprid()
 {
     _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
     _body = unchunk(_body);
-    parseMultipartData();
+    // parseMultipartData();
 }
 
 
-void Client::parseRequestBody()
-{
-
-    // request is multipart/form-data or binary
-    if(_headers.find("Transfer-Encoding") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
-    {
-        parseHyprid();
-    }
-    else if (_headers.find("Content-Length") != _headers.end() && _headers.find("Transfer-Encoding") == _headers.end())
-    {
-        if (_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
-            parseMultipartData();
-
-        else
-            parseBinaryData();
-    }
-    // request is chunked
-    else if (_headers.find("Transfer-Encoding") != _headers.end() && _headers["Transfer-Encoding"].find("chunked") != std::string::npos)
-        parseChunkedData();
-}
 
 char randchar()
 {
@@ -215,7 +349,7 @@ char randchar()
 std::string Client::generateRandomString()
 {
     size_t length = 10;
-    srand(time(NULL));
+    
     std::string str(length, 0);
     std::generate_n(str.begin(), length, randchar);
     return str;
@@ -223,27 +357,7 @@ std::string Client::generateRandomString()
 
 
 
-void Client::parseBinaryData()
-{
-    std::string path;
-    struct stat filehelp;
-    stat(_pathFile.c_str(), &filehelp);
-    if(S_ISDIR(filehelp.st_mode))
-    {
-        path = _location->root;
-        if (path.back() != '/')
-            path += '/';
-        filename = generateRandomString();
-        path += filename;
-    }
-    //if the file already exists, return ;
-    else if (stat(_pathFile.c_str(), &filehelp) == 0)
-        throw(_errorCode = 409, _isError = true, "no idont think so");
-    else
-        path = _pathFile;
-    createFile(path);
-    throw(_errorCode = 201, _isError = true, "binary");
-}
+
 
 std::string Client::unchunk(std::string &chunked)
 {
@@ -265,25 +379,7 @@ std::string Client::unchunk(std::string &chunked)
     return unchunkedData;
 }
 
-void Client::parseChunkedData()
-{
-    std::string path;
-    _body = unchunk(_body);
-    struct stat filehelp;
-    stat(_pathFile.c_str(), &filehelp);
-    if (S_ISDIR(filehelp.st_mode))
-    {
-        path = _pathFile;
-        if (path.back() != '/')
-            path += '/';
-        filename = generateRandomString();
-        path += filename;
-    }
-    else
-        path = _pathFile; 
-    createFile (path);
-    throw (_errorCode = 201,_isError = true,"unchunked");
-}
+
 
 size_t Client::fileCount()
 {
@@ -303,6 +399,7 @@ std::string Client::getFileName(std::string fileHeader)
     std::string filename = "";
     std::string extension;
     std::string content_type;
+    struct stat filehelp;
     size_t pos = 0;
     if ((pos = fileHeader.find("Content-Type: ")) != std::string::npos)
     {
@@ -320,6 +417,8 @@ std::string Client::getFileName(std::string fileHeader)
     {
         filename = fileHeader.substr(pos + 10);
         filename = filename.substr(0, filename.find("\""));
+         if (filename == "")
+            filename = generateRandomString();
     }
     else if ((pos = fileHeader.find("name=")) != std::string::npos && fileHeader.find("filename=") == std::string::npos)
     {
@@ -336,71 +435,292 @@ std::string Client::getFileName(std::string fileHeader)
         filename = _pathFile + "/" + filename;
     else
         filename = _pathFile + filename;
-
+    stat(filename.c_str(), &filehelp);
+    if (S_ISREG(filehelp.st_mode))
+        throw(_errorCode = 409, _isError = true, "no idont think so");
     return filename;
 }
 
-void Client::parseMultipartData()
-{
-    size_t count = fileCount();
-    std::string name;
-    std::string midBoundary = "--" + _boundry + "\r\n";
-    std::string endBoundary = "--" + _boundry + "--\r\n";
-    std::string fileContent;
-    for (size_t i = 0; i < count; i++)
-    {
-        name = getFileName(_body.substr(0, _body.find("\r\n\r\n")));
-        _body.erase(0, _body.find("\r\n\r\n") + 4);
-        if (_body.find(midBoundary) != std::string::npos)
-        {
-            fileContent = _body.substr(0, _body.find(midBoundary));
-            _body.erase(0, _body.find(midBoundary) + midBoundary.length());
-        }
-        else if (_body.find(endBoundary) != std::string::npos)
-        {
-            fileContent = _body.substr(0, _body.find(endBoundary));
-            _body.erase(0, _body.find(endBoundary) + endBoundary.length());
-        }
-        createFile(name, fileContent);
-    }
-    throw(_errorCode = 201, _isError = true, "good shit");
-}
 
-void Client::createFile(std::string path)
-{
-    struct stat buffer;
-    // if the file already exists, return ;
-    if (stat(path.c_str(), &buffer) == 0)
-        return;
-    std::ofstream outfile(path.c_str());
-    if (!outfile.is_open())
-        throw(_errorCode = 501, _isError = true, "couldn't create the file");
-    outfile << _body;
-    outfile.close();
-}
 
-void Client::createFile(std::string name, std::string &fileContent)
-{
-    struct stat buffer;
-    if (stat(name.c_str(), &buffer) == 0)
-        throw(_errorCode = 409, _isError = true, "no idont think so");
-    std::ofstream outfile(name.c_str());
-    if (!outfile.is_open())
-        throw(_errorCode = 501, _isError = true, "couldn't create the file");
-    outfile << fileContent;
-    outfile.close();
 
-}
 
 void  Client::readContentLength(int fd)
 {
+    char buffer[5000];
+    struct stat _stat;
+    int ret = 1;
+    if(_isNotFirst == false)
+    {
+        parseBinaryData();
+        _isNotFirst = true;
+    }
+    if(_isreadFromClient == false)
+    {
+        ret = recv(fd, buffer, 5000, 0);
+        if(ret <= 0)
+           return;
+        _body.append(buffer, ret);
+        timestamp = time(NULL);
+        _isreadFromClient = true;
+    }
+    std::ofstream outfile(_fileupload.c_str(), std::ios::app);
+    if (!outfile.is_open())
+    {
+        remove(_fileupload.c_str());
+        throw (_errorCode = 500,_isError = true ,"return"); // Bad Request
+    }
+    outfile << _body;
+    outfile.close();
+    _body.clear();
+    stat(_fileupload.c_str(), &_stat);
+    if(static_cast<size_t> (_stat.st_size) == _contentLength)
+    { 
+        isBodyEnd = true;
+        throw(_errorCode = 201, _isError = true, "binary");
+    }
+    else if(static_cast<size_t> (_stat.st_size) > _contentLength || _contentLength > _location->max_body_size)
+    {
+        remove(_fileupload.c_str());
+        throw (_errorCode = 413 ,"return"); // Request Entity Too Large
+    }
+}
+
+
+void Client::parseBinaryData()
+{
+    struct stat filehelp;
+    stat(_pathFile.c_str(), &filehelp);
+    if(S_ISDIR(filehelp.st_mode))
+    {
+        _fileupload = _location->root;
+        if (_fileupload.back() != '/')
+            _fileupload += '/';
+        filename = generateRandomString();
+        _fileupload += filename;
+    }
+    else if (stat(_pathFile.c_str(), &filehelp) == 0)
+        throw(_errorCode = 409, _isError = true, "no idont think so");
+    else
+        _fileupload = _pathFile;
+    std::ofstream outfile(_fileupload.c_str(), std::ios::app);
+    if (!outfile.is_open())
+        throw (_errorCode = 500,_isError = true ,"return");
+    outfile.close(); // Bad Request
+}
+
+void Client::readChunked(int fd)
+{
+    if(_isNotFirst == false)
+    {
+   
+        parseBinaryData();
+        _isNotFirst = true;
+    }
+    char buffer[3000];
+    int ret = 1;
+    std::stringstream ss;
+    struct stat _stat;
+    if(_isreadFromClient == false)
+    {
+        ret = recv(fd, buffer, 3000, 0);
+        if(ret <= 0)
+            return;
+        _body.append(buffer, ret);
+        timestamp = time(NULL);
+        _isreadFromClient = true;
+    }
+   while(_body.size() > 0)
+   {
+        if(_chunkedSize == 0 && _body.find("\r\n") != std::string::npos)
+        {
+            if(_body.find("0\r\n\r\n") == 0)
+            {
+                 
+                _body.erase(0, _body.find("\r\n\r\n") + 4);
+                isBodyEnd = true;
+                throw(_errorCode = 201, _isError = true, "binary");
+            }
+            ss << std::hex << _body.substr(0, _body.find("\r\n"));
+            ss >> _chunkedSize;
+            _body.erase(0, _body.find("\r\n") + 2);
+            ss.clear();
+        }
+        if(_chunkedSize > 0 && _body.size() > 0)
+        {
+            if(_body.size() >= _chunkedSize + 2)
+            {
+                std::ofstream outfile(_fileupload.c_str(), std::ios::app);
+                if (!outfile.is_open())
+                {
+                    remove(_fileupload.c_str());
+                    throw (_errorCode = 500,_isError = true ,"return"); // Bad Request
+                }
+                
+                outfile << _body.substr(0, _chunkedSize);
+                stat(_fileupload.c_str(), &_stat);
+                if(static_cast<size_t> (_stat.st_size) > _location->max_body_size)
+                {
+                    remove(_fileupload.c_str());
+                    throw (_errorCode = 413 ,"return"); // Request Entity Too Large
+                }
+                outfile.close();
+                _body.erase(0, _chunkedSize + 2);
+                _chunkedSize = 0;
+            }else
+                break;
+        }else
+            break;
+   }
+}
+
+
+void Client::readBoundry(int fd)
+{
     char buffer[3040];
     int ret = 1;
-    ret = recv(fd, buffer, 3040, 0);
-    if(ret <= 0)
-        throw (_errorCode = 404,_isError = true ,"return"); // Bad Request
-    timestamp = time(NULL);
-    _body.append(buffer, ret);
+    if(_isreadFromClient == false)
+    {
+        ret = recv(fd, buffer, 3040, 0);
+        if(ret <= 0)
+            return ;
+        _body.append(buffer, ret);
+        timestamp = time(NULL);
+    }
+    std::string midBoundary = "--" + _boundry + "\r\n";
+    std::string endBoundary = "--" + _boundry + "--\r\n";
+    while( _body.size() > 0)
+    {
+
+        if(_isNotFirst == false && _body.find(midBoundary) == 0 && _body.find("\r\n\r\n") != std::string::npos) 
+        {
+            _fileupload = getFileName(_body.substr(0, _body.find("\r\n\r\n")));
+            _filesUploaded.push_back(_fileupload);
+            _body.erase(0, _body.find("\r\n\r\n") + 4);
+            _isNotFirst = true;
+        }
+        if(_isNotFirst == true)
+        {
+            if(_body.find(midBoundary) != std::string::npos)
+            {
+                std::ofstream outfile(_fileupload.c_str(), std::ios::app | std::ios::binary);
+                if (!outfile.is_open())
+                {
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 500,_isError = true ,"return"); // Bad Request
+                }
+                outfile << _body.substr(0, _body.find(midBoundary));
+                _currentLength += _body.substr(0, _body.find(midBoundary)).size();
+                if(_currentLength > _location->max_body_size)
+                {
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 413 ,"return"); // Request Entity Too Large
+                }
+                outfile.close();
+                _body.erase(0, _body.find(midBoundary));
+                _isNotFirst = false;
+            }
+            else if(_body.find(endBoundary) != std::string::npos)
+            {
+                std::ofstream outfile(_fileupload.c_str(), std::ios::app | std::ios::binary );
+                if (!outfile.is_open())
+                {   
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 500,_isError = true ,"return"); // Bad Request
+                }
+                outfile << _body.substr(0, _body.find(endBoundary));
+                _currentLength += _body.substr(0, _body.find(endBoundary)).size();
+                 if(_currentLength > _location->max_body_size)
+                {
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 413 ,"return"); // Request Entity Too Large
+                }
+                outfile.close();
+                _body.erase(0, _body.find(endBoundary));
+                _body.clear();
+                isBodyEnd = true;
+                throw(_errorCode = 201, _isError = true, "binary");
+            }
+            else if(_body.size() >= 100000)
+            {
+                std::ofstream outfile(_fileupload.c_str(), std::ios::app);
+                if (!outfile.is_open())
+                {
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 501,_isError = true ,"return"); // Bad Request
+                }
+                outfile << _body.substr(0, _body.size() - 1000);
+                _currentLength += _body.substr(0, _body.size() - 1000).size();
+                 if(_currentLength > _location->max_body_size)
+                {
+                    for(size_t i = 0; i < _filesUploaded.size(); i++)
+                        remove(_filesUploaded[i].c_str());
+                    throw (_errorCode = 413 ,"return"); // Request Entity Too Large
+                }
+                outfile.close();
+                _body.erase(0, _body.size() - 1000);
+            }
+            else
+                break;
+        }else
+            break;
+    }
+}
+
+void Client::readBoundryCgi(int fd)
+{
+    char buffer[3040];
+    int ret = 1;
+    if(_isreadFromClient == false)
+    {
+        ret = recv(fd, buffer, 3040, 0);
+        if(ret <= 0)
+            return ;
+        timestamp = time(NULL);
+        _body.append(buffer, ret);
+        _isreadFromClient = true;
+    }
+    _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
+    if(_body.find("--"+_boundry +"--") != std::string::npos)
+        isBodyEnd = true;
+}
+
+
+void Client::readChunkedCgi(int fd)
+{
+    char buffer[3040];
+    int ret = 1;
+    if(_isreadFromClient == false)
+    {
+        ret = recv(fd, buffer, 3040, 0);
+        if(ret <= 0)
+            return ;
+        timestamp = time(NULL);
+        _body.append(buffer, ret);
+        _isreadFromClient = true;
+    }
+    if(_body.find("0\r\n\r\n") != std::string::npos)
+        isBodyEnd = true;
+}
+
+void  Client::readContentLengthCgi(int fd)
+{
+    char buffer[3040];
+    int ret = 1;
+    if(_isreadFromClient == false)
+    {
+        ret = recv(fd, buffer, 3040, 0);
+        if(ret <= 0)
+            return ;
+        timestamp = time(NULL);
+        _body.append(buffer, ret);
+        _isreadFromClient = true;
+    }
     if(_body.length() == _contentLength)
         isBodyEnd = true;
     else if(_body.length() > _contentLength || _contentLength > _location->max_body_size)

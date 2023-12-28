@@ -2,6 +2,7 @@
 #define SERVER_HPP
 
 
+#include "../webserv/webserv.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -17,25 +18,10 @@
 #include <sys/wait.h>
 #include <poll.h>
 
-#include "../webserv/webserv.hpp"
 #include <utility>
-class location
-{
-    private:
-    public:
-        bool autoindex;
-        std::pair <int,std::string>_return;
-        bool isReturn;
-        bool isCgi;
-        std::string path;
-        std::string compiler;
-        std::string cgi_path;
-        size_t max_body_size;
-        std::string root;
-        std::vector<std::string> methods;
-        std::vector<std::string> indexes;
-        std::map <int, std::string> error_pages;
-};
+#include "../server/location.hpp"
+
+class location;
 
 class server
 {

@@ -11,7 +11,7 @@ int main(int ac, char **av)
                 config_file = av[1];
             else
                 config_file = "configs/default.conf";
-            
+            // printServer();
             webserv webserver(config_file);
             webserver.init();
             webserver.run();

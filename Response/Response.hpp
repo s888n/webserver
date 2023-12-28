@@ -12,7 +12,6 @@ class Response
 {
     protected:
         std::map<std::string, std::string> _headersResponse;
-        std::map <std::string, std::string> _headersRequest;
         std::map<std::string, std::string> _MimeType;
         std::map<int, std::string> _errorPages;
         std::map<int,std::string> _status;
@@ -23,8 +22,10 @@ class Response
         bool           _isBodyEnd;
         bool            _isConnectionClose;
         std::string     _servername;
+        size_t          _contentLengthSend;
 
     public:
+        std::map <std::string, std::string> _headersRequest;
         location        *_locationResponse;
         std::string     _bodyResponse;
         std::string     _file;

@@ -19,12 +19,16 @@ Response::Response()
     _status[403] = "Forbidden";
     _status[404] = "Not Found";
     _status[405] = "Method Not Allowed";
+    _status[406] = "Not Acceptable";
+    _status[408] = "Request Timeout";
+    _status[409] = "Conflict";
     _status[413] = "Payload Too Large";
     _status[414] = "URI Too Long";
     _status[408] = "Request Timeout";
     _status[500] = "Internal Server Error";
     _status[501] = "Not Implemented";
     _status[505] = "HTTP Version Not Supported";
+    _contentLengthSend = 0;
 
 
     _MimeType[".html"] = "text/html";
@@ -91,6 +95,7 @@ Response::Response()
     _MimeType[".dmg"] = "application/x-apple-diskimage";
 
 
+
     _errorPages[400] = "error_pages/400.html";
     _errorPages[401] = "error_pages/401.html";
     _errorPages[403] = "error_pages/403.html";
@@ -121,96 +126,118 @@ void Response::makeHeader(int status)
 
 void Response::sendHeaders(int fd)
 {
+
+     if(_headersRequest.find("Range") != _headersRequest.end())
+    {
+        std::string tmp = _headersRequest["Range"];
+        tmp = tmp.substr(tmp.find("=") + 1);
+        size_t pos = 0;
+        std::stringstream ss;
+        ss << tmp;
+        ss >> pos;
+        sendRangeBody(fd, pos);
+        return;
+    }
     int ret;
     struct stat filestat;
     stat(_file.c_str(), &filestat);
     fillResponseMap();
-    fileSend.open(_file, std::ios::in | std::ios::binary);
+    // fileSend.open(_file, std::ios::in);
     if(!S_ISREG(filestat.st_mode))
         makeBody();
-    if(fileSend.is_open())
+    // if(fileSend.is_open())
         createLengthHeader();
+    fileSend.close();
     makeHeader(_statusCode);
     ret = send(fd,_header.c_str(),_header.size(),0);
     if(ret <= 0)
         return;
     _isheadSend = true;
-    if(!fileSend.is_open())
-    {
-        _isBodyEnd = true;
-        fileSend.close();
-        return;
-    }
 }
 
 void Response::sendBody(int fd)
 {
-    char buffer[1500];
-    int ret;
-    fileSend.read(buffer, 1500);
-    ret = fileSend.gcount();
-    if(ret <=  0 )
+    char buffer[30000];
+    int ret = 0;
+    fileSend.open(_file, std::ios::in );
+    fileSend.seekg(_contentLengthSend);
+    fileSend.read(buffer, 30000); // Read up to 1500 bytes from the file
+
+    ret = fileSend.gcount(); // Get the number of bytes read
+    if (ret <= 0)
     {
+        struct stat filestat;
+        stat(_file.c_str(), &filestat);
+        if(_contentLengthSend != static_cast<size_t>(filestat.st_size))
+            return;
         fileSend.close();
         _isBodyEnd = true;
+        // _isConnectionClose = true;
         return;
     }
-    ret = send(fd,buffer,ret,0);
-    if(ret <= 0)
+    ret = send(fd, buffer, ret, 0);
+    if (ret <= 0)
     {
         fileSend.close();
         _isBodyEnd = true;
         _isConnectionClose = true;
         return;
     }
+    _contentLengthSend += ret;
+    fileSend.close();
 }
-
-bool Response::getIsheadSend() const
+std::string getDate()
 {
-    return _isheadSend;
+    std::time_t crnt = time(NULL);
+    char buffer[1000];
+    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&crnt));
+    return std::string(buffer);
 }
 
-// void Response::sendRangeBody(int fd ,size_t start)
-// {
-//     char buffer[10240];
-//     int ret;
-//     struct stat filestat;
-//     std::string tmp;
-//     stat(_file.c_str(), &filestat);
-//     fileSend.open(_file, std::ios::in | std::ios::binary);
-//     if(!fileSend.is_open())
-//     {
-//         _isBodyEnd = true;
-//         return;
-//     }
-//     fileSend.seekg(start);
-//     fileSend.read(buffer, 10240);
-//     ret = fileSend.gcount();
-//     if(ret <=  0)
-//     {
-//         fileSend.close();
-//          _isBodyEnd = true;
-//         return;
-//     }
-//     _header = "HTTP/1.1 206 Partial Content\r\n";
-//     size_t pos = start + ret;
-//     if(pos >= static_cast<size_t>(filestat.st_size))
-//         pos = filestat.st_size - 1;
-//     tmp = "Content-Type: application/octet-stream\r\n"; 
-//     if(_file.find_last_of('.') != std::string::npos)
-//         if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
-//             tmp = "Content-Type: " +  _MimeType[_file.substr(_file.find_last_of('.'))] + "\r\n"; 
-//     _header += tmp;
-//     _header += "Accept-Ranges: bytes\r\n";
-//     _header += "Connection: close\r\n"; 
-//     _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(pos) + "/" + std::to_string(filestat.st_size) + "\r\n";
-//     _header += "Content-Length: " + std::to_string(ret) + "\r\n";
-//     _header += "\r\n";
-//     _header.append(buffer, ret);
-//     ret = send(fd,_header.c_str(),_header.size(),0);
-//     fileSend.close();
-//     _isBodyEnd = true;
-// }
+void Response::sendRangeBody(int fd ,size_t start)
+{
+    char buffer[202400];
+    int ret;
+    struct stat filestat;
+    std::string tmp;
+    stat(_file.c_str(), &filestat);
+    fileSend.open(_file, std::ios::in);
+    if(!fileSend.is_open())
+    {
+        _isBodyEnd = true;
+        return;
+    }
+    fileSend.seekg(start);
+    fileSend.read(buffer, 202400);
+    ret = fileSend.gcount();
+    if(ret <=  0)
+    {
+        fileSend.close();
+         _isBodyEnd = true;
+        return;
+    }
+    _header = "HTTP/1.1 206 Partial Content\r\n";
+    size_t pos = start + ret;
+    if(pos >= static_cast<size_t>(filestat.st_size))
+        pos = filestat.st_size - 1;
+    tmp = "Content-Type: application/octet-stream\r\n"; 
+    if(_file.find_last_of('.') != std::string::npos)
+        if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
+            tmp = "Content-Type: " +  _MimeType[_file.substr(_file.find_last_of('.'))] + "\r\n"; 
+    _header += tmp;
+    _header += "Accept-Ranges: bytes\r\n";
+    _header += "Connection: close\r\n"; 
+    _header += "Content-Range: bytes " + std::to_string(start) + "-" + std::to_string(pos) + "/" + std::to_string(filestat.st_size) + "\r\n";
+    _header += "Content-Length: " + std::to_string(ret) + "\r\n";
+    _header += "Server: " + _servername + "\r\n";
+    _header += "cache-control: private ,Max-Age=3600\r\n";
+    _header += "Date: " + getDate() + "\r\n";
+    _header += "\r\n";
+    _header.append(buffer, ret);
+    ret = send(fd,_header.c_str(),_header.size(),0);
+    fileSend.close();
+    _isBodyEnd = true;
+}
  Response::~Response()
  {
      if(fileSend.is_open())
@@ -242,26 +269,47 @@ Response& Response::operator=(Response const &main)
         _bodyResponse = main._bodyResponse;
         _locationResponse = main._locationResponse;
         _servername = main._servername;
+        _contentLengthSend = main._contentLengthSend;
     }
     return *this;
 }
 
-
+std::string lastTime(std::time_t crnt)
+{
+    char buffer[1000];
+    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&crnt));
+    return std::string(buffer);
+}
 void Response::fillResponseMap()
 {
-    _headersResponse["Content-Type"] = "text/html";  
+    struct stat filestat;
+    stat(_file.c_str(), &filestat);
+    _headersResponse["Content-Type"] = "text/html"; 
+    if(_statusCode == 405)
+    {
+        std::string tmp;
+        for(size_t i = 0;_locationResponse->methods.size() > i; i++)
+            tmp += _locationResponse->methods.at(i) + ", ";
+        _headersResponse["Allow"] = tmp.substr(0,tmp.size() - 2);
+    }
     if(_file.find_last_of('.') != std::string::npos)
     {
-    if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
-        _headersResponse["Content-Type"] = _MimeType[_file.substr(_file.find_last_of('.'))];
-    else
-         _headersResponse["Content-Type"] = "application/octet-stream";  
+        if(_MimeType.find(_file.substr(_file.find_last_of('.'))) != _MimeType.end())
+            _headersResponse["Content-Type"] = _MimeType[_file.substr(_file.find_last_of('.'))];
+        else
+            _headersResponse["Content-Type"] = "application/octet-stream";  
     }
+    if(S_ISREG(filestat.st_mode))
+        _headersResponse["Last-Modified"] = lastTime(filestat.st_mtime);
     _headersResponse["Server"] = _servername;
-    // _headersResponse["Host"] = _headersRequest["Host"];
-
+    _headersResponse["Date"] =  getDate();
     _headersResponse["Accept-Ranges"] = "bytes";
-    _headersResponse["Connection"] = "close";
+
+    if(_headersRequest.find("Connection") != _headersRequest.end() && _headersRequest["Connection"] == "close")
+        _headersResponse["Connection"] = "close";
+    else
+        _headersResponse["Connection"] = "keep-alive";
+     _headersResponse["Cache-Control"] = "private ,Max-Age=3600";
 
 }
 void  Response::sendExaption(int fd, int status)
@@ -319,7 +367,6 @@ bool Response::getIsConnectionClose() const
                 _isBodyEnd = true;
                 _isConnectionClose = true;
             }
-            
         }else 
         {
             ret = send(fd,_bodyResponse.c_str(),_bodyResponse.size(),0);
@@ -333,34 +380,6 @@ bool Response::getIsConnectionClose() const
  }
 
 
-void Response::makeBody()
-{
-    struct stat filestat;
-    struct dirent *en;
-    //std::string tmp = _headersRequest["Path"].substr(0, _headersRequest["Path"].find_last_of('/') + 1);
-    if(_bodyResponse.size() > 0)
-        return;
-    if(_headersRequest["Path"].back() != '/')
-        _headersRequest["Path"] += "/";
-    stat(_file.c_str(), &filestat);
-    if (_statusCode == 200 && S_ISDIR(filestat.st_mode) && _locationResponse->isReturn   == false)              
-    {
-        DIR *dir = opendir(_file.c_str());
-        _bodyResponse  = "<html>\n<head>\n<title>Index of " + _headersRequest["Path"] + "</title>\n</head>\n<body>\n<h1>Index of " + _headersRequest["Path"] + "</h1>\n";
-        while((en =readdir(dir)) != NULL)
-        {
-            if(std::string(en->d_name).front() == '.')
-                continue;
-            _bodyResponse += "<a href=\"" + _headersRequest["Path"] + std::string(en->d_name) + "\">" + std::string(en->d_name) + "</a><br>";
-        }
-        _bodyResponse += "</body>\n</html>";
-        closedir(dir);
-    }else
-    {
-        //makeErroPage(_bodyResponse, _status[_statusCode], _statusCode);
-        _bodyResponse = "<html>\n<head>\n<title>" + std::to_string(_statusCode) + " " + _status[_statusCode] + "</title>\n</head>\n<body>\n<h1>" + std::to_string(_statusCode) + " " + _status[_statusCode] + "</h1>" + "\n</body>\n</html>";
-    }
-}
 
 
 void makeErroPage(std::string &body,std::string message , int status)
@@ -390,122 +409,83 @@ void makeErroPage(std::string &body,std::string message , int status)
                 "        body {\n"
                 "            padding: 0;\n"
                 "            margin: 0;\n"
-                "        }\n"
+                "#notfound {\n"
+                "    position: relative;\n"
+                "    height: 100vh;\n"
+                "    background: #030005;\n"
+                "    font-family: 'Montserrat', sans-serif;\n"
+                "}\n"
                 "\n"
-                "        #notfound {\n"
-                "            position: relative;\n"
-                "            height: 100vh;\n"
-                "            background: #030005;\n"
-                "            font-family: 'Montserrat', sans-serif;\n"
-                "        }\n"
+                "#notfound .notfound {\n"
+                "    position: absolute;\n"
+                "    left: 50%;\n"
+                "    top: 50%;\n"
+                "    transform: translate(-50%, -50%);\n"
+                "}\n"
                 "\n"
-                "        #notfound .notfound {\n"
-                "            position: absolute;\n"
-                "            left: 50%;\n"
-                "            top: 50%;\n"
-                "            -webkit-transform: translate(-50%, -50%);\n"
-                "            -ms-transform: translate(-50%, -50%);\n"
-                "            transform: translate(-50%, -50%);\n"
-                "        }\n"
+                ".notfound {\n"
+                "    max-width: 767px;\n"
+                "    width: 100%;\n"
+                "    line-height: 1.4;\n"
+                "    text-align: center;\n"
+                "}\n"
                 "\n"
-                "        .notfound {\n"
-                "            max-width: 767px;\n"
-                "            width: 100%;\n"
-                "            line-height: 1.4;\n"
-                "            text-align: center;\n"
-                "        }\n"
+                ".notfound .notfound-404 {\n"
+                "    position: relative;\n"
+                "    height: 180px;\n"
+                "    margin-bottom: 20px;\n"
+                "    z-index: -1;\n"
+                "}\n"
                 "\n"
-                "        .notfound .notfound-404 {\n"
-                "            position: relative;\n"
-                "            height: 180px;\n"
-                "            margin-bottom: 20px;\n"
-                "            z-index: -1;\n"
-                "        }\n"
+                ".notfound .notfound-404 h1 {\n"
+                "    font-family: 'Montserrat', sans-serif;\n"
+                "    position: absolute;\n"
+                "    left: 50%;\n"
+                "    top: 50%;\n"
+                "    transform: translate(-50%, -50%);\n"
+                "    font-size: 224px;\n"
+                "    font-weight: 900;\n"
+                "    margin: 0;\n"
+                "    color: #030005;\n"
+                "    text-transform: uppercase;\n"
+                "    text-shadow: -1px -1px 0px #8400ff, 1px 1px 0px #ff005a;\n"
+                "    letter-spacing: -20px;\n"
+                "}\n"
                 "\n"
-                "        .notfound .notfound-404 h1 {\n"
+                ".notfound .notfound-404 h2 {\n"
+                "    font-family: 'Montserrat', sans-serif;\n"
+                "    font-size: 42px;\n"
+                "    font-weight: 700;\n"
+                "    color: #fff;\n"
+                "    text-transform: uppercase;\n"
+                "    text-shadow: 0px 2px 0px #8400ff;\n"
+                "    letter-spacing: 13px;\n"
+                "    margin: 0;\n"
+                "}\n"
                 "\n"
-                "        #notfound .notfound {\n"
-                "            position: absolute;\n"
-                "            left: 50%;\n"
-                "            top: 50%;\n"
-                "            -webkit-transform: translate(-50%, -50%);\n"
-                "            -ms-transform: translate(-50%, -50%);\n"
-                "            transform: translate(-50%, -50%);\n"
-                "        }\n"
+                ".notfound a {\n"
+                "    font-family: 'Montserrat', sans-serif;\n"
+                "    display: inline-block;\n"
+                "    text-transform: uppercase;\n"
+                "    color: #ff005a;\n"
+                "    text-decoration: none;\n"
+                "    border: 2px solid;\n"
+                "    background: transparent;\n"
+                "    padding: 10px 40px;\n"
+                "    font-size: 14px;\n"
+                "    font-weight: 700;\n"
+                "    transition: 0.2s all;\n"
+                "}\n"
                 "\n"
-                "        .notfound {\n"
-                "            max-width: 767px;\n"
-                "            width: 100%;\n"
-                "            line-height: 1.4;\n"
-                "            text-align: center;\n"
-                "        }\n"
+                ".notfound a:hover {\n"
+                "    color: #8400ff;\n"
+                "}\n"
                 "\n"
-                "        .notfound .notfound-404 {\n"
-                "            position: relative;\n"
-                "            height: 180px;\n"
-                "            margin-bottom: 20px;\n"
-                "            z-index: -1;\n"
-                "        }\n"
-                "\n"
-                "        .notfound .notfound-404 h1 {\n"
-                "            font-family: 'Montserrat', sans-serif;\n"
-                "            position: absolute;\n"
-                "            left: 50%;\n"
-                "            top: 50%;\n"
-                "            -webkit-transform: translate(-50%, -50%);\n"
-                "            -ms-transform: translate(-50%, -50%);\n"
-                "            transform: translate(-50%, -50%);\n"
-                "            font-size: 224px;\n"
-                "            font-weight: 900;\n"
-                "            margin-top: 0px;\n"
-                "            margin-bottom: 0px;\n"
-                "            margin-left: -12px;\n"
-                "            color: #030005;\n"
-                "            text-transform: uppercase;\n"
-                "            text-shadow: -1px -1px 0px #8400ff, 1px 1px 0px #ff005a;\n"
-                "            letter-spacing: -20px;\n"
-                "        }\n"
-                "\n"
-                "        .notfound .notfound-404 h2 {\n"
-                "            font-family: 'Montserrat', sans-serif;\n"
-                "            position: absolute;\n"
-                "            left: 0;\n"
-                "            right: 0;\n"
-                "            top: 110px;\n"
-                "            font-size: 42px;\n"
-                "            font-weight: 700;\n"
-                "            color: #fff;\n"
-                "            text-transform: uppercase;\n"
-                "            text-shadow: 0px 2px 0px #8400ff;\n"
-                "            letter-spacing: 13px;\n"
-                "            margin: 0;\n"
-                "        }\n"
-                "\n"
-                "        .notfound a {\n"
-                "            font-family: 'Montserrat', sans-serif;\n"
-                "            display: inline-block;\n"
-                "            text-transform: uppercase;\n"
-                "            color: #ff005a;\n"
-                "            text-decoration: none;\n"
-                "            border: 2px solid;\n"
-                "            background: transparent;\n"
-                "            padding: 10px 40px;\n"
-                "            font-size: 14px;\n"
-                "            font-weight: 700;\n"
-                "            -webkit-transition: 0.2s all;\n"
-                "            transition: 0.2s all;\n"
-                "        }\n"
-                "\n"
-                "        .notfound:hover a {\n"
-                "            color: #8400ff;\n"
-                "        }\n"
-                "\n"
-                "        @media only screen and (max-width: 767px) {\n"
-                "            .notfound .notfound-404 h2 {\n"
-                "                font-size: 24px;\n"
-                "            }\n"
-                "        }\n"
-                "\n"
+                "@media only screen and (max-width: 767px) {\n"
+                "    .notfound .notfound-404 h2 {\n"
+                "        font-size: 24px;\n"
+                "    }\n"
+                "}\n"
                 "        @media only screen and (max-width: 480px) {\n"
                 "            .notfound .notfound-404 h1 {\n"
                 "                font-size: 182px;\n"
@@ -532,4 +512,37 @@ void makeErroPage(std::string &body,std::string message , int status)
                 "\n"
                 "</html>";
     body = tmp;
+}
+
+void Response::makeBody()
+{
+    struct stat filestat;
+    struct dirent *en;
+    if(_bodyResponse.size() > 0)
+        return;
+    if(_headersRequest["Path"].back() != '/')
+        _headersRequest["Path"] += "/";
+    stat(_file.c_str(), &filestat);
+    if (_statusCode == 200 && S_ISDIR(filestat.st_mode) && _locationResponse->isReturn   == false)              
+    {
+        DIR *dir = opendir(_file.c_str());
+        _bodyResponse  = "<html>\n<head>\n<title>Index of " + _headersRequest["Path"] + "</title>\n</head>\n<body>\n<h1 align=\"center\">Index of " + _headersRequest["Path"] + "</h1>\n";
+        _bodyResponse += "<hr>\n<pre>\n";
+        while((en =readdir(dir)) != NULL)
+        {
+            if(std::string(en->d_name).front() == '.')
+                continue;
+            _bodyResponse += "<a href=\"" + _headersRequest["Path"] + std::string(en->d_name) + "\">" +std::string(en->d_name) + "</a> <br>";
+        }
+        _bodyResponse += "</pre>\n<hr>\n";
+        _bodyResponse += "</body>\n</html>";
+        closedir(dir);
+    }else
+    {
+        _bodyResponse = "<html>\n<head>\n<title>" + std::to_string(_statusCode) + " " + _status[_statusCode] + "</title>\n</head>\n<body>\n <h1 >"  + "<h1 style=\"margin: 40px; \"align=\"center\">" + std::to_string(_statusCode) + " " + _status[_statusCode] + "</h1>\n";
+         _bodyResponse += "<hr>\n<pre>\n";
+         _bodyResponse += "<h4 align=\"center\">Server: " + _servername + "</h4>\n";
+        _bodyResponse += "</body>\n</html>";
+        // makeErroPage(_bodyResponse, _status[_statusCode], _statusCode);
+    }
 }

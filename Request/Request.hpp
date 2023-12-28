@@ -4,7 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <map>
-class location;
+#include "../server/location.hpp"
+// class location;
 class server;
 class cgi;
 class Request
@@ -21,6 +22,7 @@ class Request
         size_t      _contentLength;
         location    *_locationCgi;
         bool       _isNotFirst;
+        location    _mylocation;
         
     public:
 
@@ -46,9 +48,7 @@ class Request
         void matchlocation();
 
         void parseBody();
-        void readBoundry(int fd);
         void readBoundrywithChunked(); 
-        void readChunked(int fd);
 
 
         void findlocation();
