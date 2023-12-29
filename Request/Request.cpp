@@ -261,6 +261,7 @@ void Request::findlocation()
             if(tmp == _server->locations[i].path)
             {
                 _mylocation = _server->locations[i];
+                 _location = &_mylocation;
                 break ;
             }
         }
@@ -271,7 +272,7 @@ void Request::findlocation()
         else
             tmp = tmp.substr(0, tmp.find_last_of('/') + 1);
     }
-    _location = &_mylocation;
+   
 
 }
 
