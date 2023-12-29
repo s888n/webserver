@@ -15,7 +15,7 @@ void webserv::init()
         pollfd.fd = servers[i].getSocket();
         pollfd.events = POLLIN;
         pollfds.push_back(pollfd);
-        // printServer(servers[i]);
+         printServer(servers[i]);
     }
 }
 

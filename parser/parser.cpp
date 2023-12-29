@@ -1,5 +1,4 @@
 #include "parser.hpp"
-void printServer(server &s);
 parser::parser(std::string &filename)
 {
     this->filename = filename;
@@ -524,6 +523,7 @@ location parser::parseLocation(std::string &lb,server &server)
             location.autoindex = setAutoindex(tokens);
         else if (tokens[0] == "return")
         {
+            std::cout << "return found************" << std::endl;
             location._return = setLocationReturn(tokens);
             location.isReturn = true;
         }
@@ -639,6 +639,8 @@ void parser::setLocationDefaultValues(location &location, server & server, strin
             location.autoindex = server.autoindex;
         if (!directiveExists("max_body_size", values))
             location.max_body_size = server.max_body_size;
+        if (!directiveExists("return", values))
+            location.isReturn = false;
     }
     if (location.isCgi)
     {
