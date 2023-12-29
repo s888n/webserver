@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: black;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+        }
+
+        #register {
+            font-family: 'Montserrat', sans-serif;
+            display: inline-block;
+            text-transform: uppercase;
+            color: #ff005a;
+            text-decoration: none;
+            border: 2px solid;
+            background: transparent;
+            padding: 10px 45px;
+            font-size: 14px;
+            font-weight: 700;
+            -webkit-transition: 0.2s all;
+            transition: 0.2s all;
+        }
+
+        #register:hover {
+            color: #8400ff;
+        }
+
+        .change {
+            font-family: 'Montserrat', sans-serif;
+            display: inline-block;
+            text-transform: uppercase;
+            color: bisque;
+            text-decoration: none;
+            border: 2px solid;
+            background: transparent;
+            padding: 10px 45px;
+            font-size: 14px;
+            font-weight: 700;
+            -webkit-transition: 0.2s all;
+            transition: 0.2s all;
+        }
+
+        .change:hover {
+            color: #8400ff;
+        }
+
+        form {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 50px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        form label {
+            display: block;
+            text-align: left;
+            margin: 10px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        form input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            font-size: 18px;
+            font-family: inherit;
+        }
+
+        form input:focus {
+            outline: none;
+            border-color: #ff005a;
+            box-shadow: 0 0 10px #ff005a;
+        }
+        form h2 {
+            color: #ff005a;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <form id="registerForm" action="../cgi-bin/register.js" method="post">
+        <h2>Sign Up</h2>
+        <label for="username">Username*:</label>
+        <input type="text" name="username" placeholder="username" required>
+        <label for="password">Password*:</label>
+        <input type="password" name="password" placeholder="password" >
+        <label for="password2">Confirm Password*:</label>
+        <input type="password" name="password2" placeholder="confirm password" >
+
+        <button id="register" type="submit">Register</button>
+        <p>Already have an account? <a class="change" href="login.html">Login</a></p>
+        <p id="error"></p>
+    </form>
+</body>
+
+</html>
