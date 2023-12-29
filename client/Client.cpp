@@ -28,26 +28,24 @@ void Client::readRequest()
         _cgi = new cgi(_locationCgi->compiler, _pathFile, _request);
         std::string tmp;
         if(_cgi->statusCode != 0)
-            throw (_errorCode = 500, _isError = true, "return");
-        
+            throw (delete _cgi ,_errorCode = 500, _isError = true, "return");
         tmp = _cgi->getResponse();
         if(tmp.size() > 0 && tmp.find("\r\n\r\n") != std::string::npos)
         {
             _body = tmp.substr(tmp.find("\r\n\r\n") + 4);
-            tmp = tmp.substr(0, tmp.find("\r\n\r\n") + 4);
+            tmp = tmp.substr(0, tmp.find("\r\n\r\n")+4);
+            std::cout << tmp << std::endl;
             while(tmp != "\r\n" && tmp != "")
             {
-                _headersResponse[tmp.substr(0, tmp.find(":"))] = tmp.substr(tmp.find(":") + 1, tmp.find("\r\n") - tmp.find(":") - 1);
-                std::cout << tmp.substr(0, tmp.find(":")) << " : " << tmp.substr(tmp.find(":") + 1, tmp.find("\r\n") - tmp.find(":") - 1) << std::endl;
+                _headersResponse[tmp.substr(0,tmp.find(":"))] = tmp.substr(tmp.find(":") + 2, tmp.find("\r\n")-tmp.find(":") - 2);
+                std::cout << tmp.substr(0,tmp.find(":")) << " : " << tmp.substr(tmp.find(":") + 2, tmp.find("\r\n")-tmp.find(":") - 2) << std::endl;
                 tmp = tmp.substr(tmp.find("\r\n") + 2);
-                std::cout << "hamza : " << tmp << std::endl;
             }
         }else
             _body = _cgi->getResponse();
         delete _cgi;
         _isCgi = false;
         _locationResponse = _locationCgi;
-
     }
 }
 
