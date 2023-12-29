@@ -1,3 +1,18 @@
+import os
+import cgi
+
+import http.cookies
+
+form = cgi.FieldStorage()          
+
+cookie_string = os.environ.get('HTTP_COOKIE',"no cookie")
+cookie = http.cookies.SimpleCookie()
+
+if(cookie_string == "no cookie"):
+    print("location: /project/login.html\r\n\r\n",end="")
+    exit(0)
+
+print("""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -152,7 +167,7 @@ button:hover {
             <a  id="nev_a" href="../cgi-bin/hello.py">Videos</a>
         </div>
         <div>
-            <a   class="change" href="../.html">Upload</a>
+            <a   class="change" href="upload.html">Upload</a>
         </div>
         <div>
             <a  id="nev_a" href="aboutUs.html">about us</a>
@@ -169,3 +184,4 @@ button:hover {
 </body>
 </html>
 
+""")

@@ -2,10 +2,20 @@
 import os
 import cgi
 
-print("Set-Cookie:UserID = XYZ;\r\n",end="")
-print("Set-Cookie:Password = XYZ123;\r\n",end="")
-print("Set-Cookie:Expires = Tuesday, 31-Dec-2021 23:12:40 GMT;\r\n",end="")
-print("\r\n",end="")
+import http.cookies
+
+form = cgi.FieldStorage()          
+
+cookie_string = os.environ.get('HTTP_COOKIE',"no cookie")
+cookie = http.cookies.SimpleCookie()
+
+if(cookie_string == "no cookie"):
+    print("location: /project/login.html\r\n\r\n",end="")
+    exit(0)
+    
+
+
+print("Content-Type: text/html\r\n\r\n",end="")
 print("""
 <!DOCTYPE html>
 <html lang="en">
@@ -183,12 +193,22 @@ button:hover {
             <a  class="change" href="hello.py">Videos</a>
         </div>
         <div>
-            <a  id="nev_a"  href="../project/upload.html">Upload</a>
+            <a  id="nev_a"  href="upload.py">Upload</a>
         </div>
         <div>
-            <a  id="nev_a" href="younsi.php">about us</a>
+            <a  id="nev_a" href="../abouUs.html">about us</a>
+        </div>
+        <div>
+            <a  id="nev_a" onclick='return logOut()'>LOG out</a>
         </div>
     </div>
+    <script>
+    function logOut(){
+        document.cookie = "sessionId=delete; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+        document.location.href = "../project/login.html";
+
+        }
+    </script>
 """)
 
 # Specify the directory you want to use
