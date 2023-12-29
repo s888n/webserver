@@ -9,6 +9,12 @@ parsed_query_string = parse_qs(query_string)
 
 name = parsed_query_string.get('name', [''])[0]
 message = parsed_query_string.get('message', [''])[0]
+print ("Content-type: text/html\r\n",end="")
+print("Set-Cookie: name=hamza\r\n",end="")
+print("Set-Cookie: name=hamza\r\n",end="")
+print("Set-Cookie: name=hamza\r\n",end="")
+print("Set-Cookie: name=hamza\r\n",end="")
+print("\r\n",end="")
 
 print ("<html>")
 print ("<head>")

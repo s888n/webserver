@@ -34,11 +34,10 @@ void Client::readRequest()
         {
             _body = tmp.substr(tmp.find("\r\n\r\n") + 4);
             tmp = tmp.substr(0, tmp.find("\r\n\r\n")+4);
-            std::cout << tmp << std::endl;
             while(tmp != "\r\n" && tmp != "")
             {
-                _headersResponse[tmp.substr(0,tmp.find(":"))] = tmp.substr(tmp.find(":") + 2, tmp.find("\r\n")-tmp.find(":") - 2);
-                std::cout << tmp.substr(0,tmp.find(":")) << " : " << tmp.substr(tmp.find(":") + 2, tmp.find("\r\n")-tmp.find(":") - 2) << std::endl;
+
+                _headersCgi.push_back(std::make_pair(tmp.substr(0,tmp.find(":")), tmp.substr(tmp.find(":") + 2, tmp.find("\r\n")-tmp.find(":") - 2)));
                 tmp = tmp.substr(tmp.find("\r\n") + 2);
             }
         }else

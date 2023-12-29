@@ -5,7 +5,9 @@
 #include <map>
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include <sys/socket.h>
+#include <utility>
 
 class location;
 class Response
@@ -23,6 +25,7 @@ class Response
         bool            _isConnectionClose;
         std::string     _servername;
         size_t          _contentLengthSend;
+        std::vector<std::pair<std::string, std::string> > _headersCgi;
 
     public:
         std::map <std::string, std::string> _headersRequest;

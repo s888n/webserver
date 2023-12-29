@@ -116,9 +116,12 @@ Response::Response()
 void Response::makeHeader(int status)
 {
     _header = "HTTP/1.1 " + std::to_string(status) + " " + _status[status] + "\r\n";
+    for(size_t i = 0; _headersCgi.size() > i; i++)
+        _header += _headersCgi.at(i).first + ": " + _headersCgi.at(i).second + "\r\n";
     while(_headersResponse.size() > 0)
     {
-        _header += _headersResponse.begin()->first + ": " + _headersResponse.begin()->second + "\r\n";
+        if(_header.find(_headersResponse.begin()->first) == std::string::npos) 
+            _header += _headersResponse.begin()->first + ": " + _headersResponse.begin()->second + "\r\n";
         _headersResponse.erase(_headersResponse.begin());
     }
     _header += "\r\n";
