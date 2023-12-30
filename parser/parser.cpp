@@ -523,7 +523,6 @@ location parser::parseLocation(std::string &lb,server &server)
             location.autoindex = setAutoindex(tokens);
         else if (tokens[0] == "return")
         {
-            std::cout << "return found************" << std::endl;
             location._return = setLocationReturn(tokens);
             location.isReturn = true;
         }
