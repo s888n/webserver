@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-import cgi
-import cgitb
+
 import os
 from urllib.parse import parse_qs
 
-cgitb.enable()
 
 body = os.environ.get('QUERY_STRING')
 parsed_body = parse_qs(body)
