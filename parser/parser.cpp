@@ -1,5 +1,4 @@
 #include "parser.hpp"
-void printServer(server &s);
 parser::parser(std::string &filename)
 {
     this->filename = filename;
@@ -379,8 +378,8 @@ size_t parser::setMaxBodySize(stringVector &values)
     values[1].erase(values[1].find_first_of("mkg"));
     }
     size_t max_body_size = std::stoul(values[1].c_str()) * magnitude;
-    if (max_body_size > 100000000)
-        max_body_size = 100000000;
+    // if (max_body_size > 100000000)
+    //     max_body_size = 100000000;
     return max_body_size;
 }
 
@@ -508,8 +507,7 @@ location parser::parseLocation(std::string &lb,server &server)
     location location;
     
     location.path = extractPath(lb);
-    //if path ends with .py or .php cgi = true
-    if(location.path.find(".py") != std::string::npos || location.path.find(".php") != std::string::npos)
+    if(location.path.find(".py") != std::string::npos || location.path.find(".js") != std::string::npos)
         location.isCgi = true;
     else
         location.isCgi = false;
@@ -640,6 +638,8 @@ void parser::setLocationDefaultValues(location &location, server & server, strin
             location.autoindex = server.autoindex;
         if (!directiveExists("max_body_size", values))
             location.max_body_size = server.max_body_size;
+        if (!directiveExists("return", values))
+            location.isReturn = false;
     }
     if (location.isCgi)
     {

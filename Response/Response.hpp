@@ -5,14 +5,15 @@
 #include <map>
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include <sys/socket.h>
+#include <utility>
 
 class location;
 class Response
 {
     protected:
-        std::unordered_map<std::string, std::string> _headersResponse;
-        std::map <std::string, std::string> _headersRequest;
+        std::map<std::string, std::string> _headersResponse;
         std::map<std::string, std::string> _MimeType;
         std::map<int, std::string> _errorPages;
         std::map<int,std::string> _status;
@@ -22,8 +23,12 @@ class Response
         bool            _isheadSend;
         bool           _isBodyEnd;
         bool            _isConnectionClose;
+        std::string     _servername;
+        size_t          _contentLengthSend;
+        std::vector<std::pair<std::string, std::string> > _headersCgi;
 
     public:
+        std::map <std::string, std::string> _headersRequest;
         location        *_locationResponse;
         std::string     _bodyResponse;
         std::string     _file;

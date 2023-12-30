@@ -1,6 +1,6 @@
 NAME = webserver
 CC = c++
-CFLAGS = -Wall -Wextra -Werror -std=c++98 
+CFLAGS = -Wall -Wextra -Werror -std=c++98 -g
 SRCS = main.cpp $(wildcard server/*.cpp) $(wildcard utils/*.cpp) $(wildcard parser/*.cpp) $(wildcard webserv/*.cpp) $(wildcard cgi/*.cpp) $(wildcard client/*.cpp)  $(wildcard Request/*.cpp) $(wildcard Response/*.cpp)   
 OBJDIR = obj
 OBJS = $(addprefix $(OBJDIR)/, $(SRCS:.cpp=.o))

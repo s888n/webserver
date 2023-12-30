@@ -4,8 +4,10 @@
 #include <iostream>
 #include <fstream>
 #include <map>
-class location;
+#include "../server/location.hpp"
+// class location;
 class server;
+class cgi;
 class Request
 {
     protected:
@@ -18,13 +20,20 @@ class Request
         std::ofstream *_os;
         std::string _pathDir;
         size_t      _contentLength;
+        location    *_locationCgi;
+        bool       _isNotFirst;
+        location    _mylocation;
+        
     public:
 
+        bool        _isCgi;
+        cgi         *_cgi;
         location    *_location;
         bool        _isError;
         std::string _pathFile;
         server      *_server;
         std::string _body;
+        bool _isNotRemove;
         bool isBodyEnd;
         
         Request();
@@ -39,10 +48,7 @@ class Request
         void matchlocation();
 
         void parseBody();
-        void readBoundry(int fd);
         void readBoundrywithChunked(); 
-        void readChunked(int fd);
-        void  readContentLength(int fd);
 
 
         void findlocation();
@@ -58,6 +64,10 @@ class Request
         bool getIsheaderIsRecv();
         ~Request();
         void tryfilePost();
+        void tryfileDelete();
+        void removeDir(std::string path);
+        void checkAccess(std::string path);
+        void matchCgi();
 };
 
 #endif

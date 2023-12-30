@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-color:  black;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+        }
+
+        .nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center; 
+            align-items: center; 
+            background-color: black;
+            z-index: 100; 
+        }
+        .nav div {
+            /* flex: 1; */
+            text-align: center;
+            padding: 5px;
+            margin: 5px;
+        }
+        .nav #nev_a{
+            font-family: 'Montserrat', sans-serif;
+            display: inline-block;
+            text-transform: uppercase;
+            color: #ff005a;
+            text-decoration: none;
+            border: 2px solid;
+            background: transparent;
+            padding: 10px 45px;
+            font-size: 14px;
+            font-weight: 700;
+            -webkit-transition: 0.2s all;
+                transition: 0.2s all;
+        }
+        .nav #nev_a:hover {
+            color: #8400ff;
+            }
+        #but{
+            ont-family: 'Montserrat', sans-serif;
+            display: inline-block;
+            text-transform: uppercase;
+            color: #ff005a;
+            text-decoration: none;
+            border: 2px solid;
+            background: transparent;
+            padding: 10px 45px;
+            font-size: 14px;
+            font-weight: 700;
+            -webkit-transition: 0.2s all;
+                transition: 0.2s all;
+        }
+        #but:hover {
+            color: #8400ff;
+            }
+        .change{
+            font-family: 'Montserrat', sans-serif;
+            display: inline-block;
+            text-transform: uppercase;
+            color: bisque;
+            text-decoration: none;
+            border: 2px solid;
+            background: transparent;
+            padding: 10px 45px;
+            font-size: 14px;
+            font-weight: 700;
+            -webkit-transition: 0.2s all;
+                transition: 0.2s all;
+        }
+        .change:hover {
+            color: #8400ff;
+            }
+
+
+
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <div>
+            <a href="index.html">
+                <img src="images.png" alt="Description of image" width="40px" >
+            </a>
+        </div>
+        <div>
+            <a id="nev_a"  href="index.html">Home</a>
+        </div>
+        <div>
+            <a  id="nev_a" href="../cgi-bin/hello.py">Videos</a>
+        </div>
+        <div>
+            <a   id="nev_a" href="../cgi/upload.py">Upload</a>
+        </div>
+        <div>
+            <a  class="change"  href="aboutUs.html">about us</a>
+        </div>
+    </div>
+
+</body>
+</html>

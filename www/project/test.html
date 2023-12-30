@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Upload Video</h2>
+<p>Only .mp4, .mkv, .avi, .mov files are allowed:</p>
+
+<form action="/" method="post" enctype="multipart/form-data">
+  <label for="title">Video Title:</label><br>
+  <input type="text" id="title" name="title" required><br>
+  <label for="video">Select video:</label><br>
+  <input type="file" id="video" name="video" accept="video/mp4,video/x-mkv,video/x-msvideo,video/quicktime" required><br>
+  <input type="submit" value="Upload Video">
+</form>
+
+</body>
+</html>

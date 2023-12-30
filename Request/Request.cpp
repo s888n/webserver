@@ -1,6 +1,8 @@
 #include "Request.hpp"
 #include "../server/server.hpp"
 #include <sstream>
+#include <cstring>
+#include <limits.h>
 
 Request::Request()
 {
@@ -13,8 +15,13 @@ Request::Request()
     _location = NULL;
     _server = NULL;
     _os = NULL;
+    _isCgi = false;
+    _isNotRemove = false;
+    _locationCgi = NULL;
+    _cgi = NULL;
+    _isNotFirst = false;
+    isBodyEnd = false;
 
-    // location = NULL;
 }
 
 Request::~Request()
@@ -53,6 +60,19 @@ void Request::ParseRequest(std::string request)
     {
         _headers[request.substr(0,request.find(":"))] = request.substr(request.find(":") + 2, request.find("\r\n")-request.find(":") - 2);
         request = request.substr(request.find("\r\n") + 2);
+    }
+    if(_headers.find("Host") == _headers.end())
+        throw (_isError = true , "host not found");
+    if(_headers.find("Content-Length") != _headers.end())
+    {
+        std::stringstream ss;
+        ss << _headers["Content-Length"];
+        ss >> _contentLength;
+    }
+    if(_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
+    {
+        _isboundry = true;
+        _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
     }
 }
 
@@ -142,25 +162,39 @@ void Request::uriToPath()
     _headers["Path"] = tmp;
 }
 
-
 void Request::matchlocation()
 {
+    std::string     pathreal,rootreal;
+    char hold1[PATH_MAX];
+    char hold2[PATH_MAX];
+    std::string tmp;
     findlocation();
+    tmp = _location->root + _headers["Path"];
+    realpath(tmp.c_str(),hold1);
+    realpath(_location->root.c_str(),hold2);
+    pathreal = hold1;
+    rootreal = hold2;
+    if(pathreal.find(rootreal) != 0)
+        throw (_errorCode = 400,_isError =true ,"method error");
+      
     if(_headers["Method"] == "GET")
         matchlocationForGET();
     else if(_headers["Method"] == "POST")
         matchlocationForPOST();
     else if(_headers["Method"] == "DELETE")
         matchlocationForDELETE();
+    
 }
 
 void Request::matchlocationForGET()
 {
     _isReadBody = false;
+       
     if(_location->isReturn == true)
         throw "return";
     if(std::find(_location->methods.begin(), _location->methods.end(), "GET") == _location->methods.end())
         throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
+    
     tryFiles();
 }
 
@@ -170,15 +204,22 @@ void Request::tryFiles()
     struct stat     _stat;
     std::fstream    fs;
 
+
     tmp = _location->root;
     if(tmp.back() == '/')
         tmp = tmp.substr(0, tmp.length() - 1);
     tmp = tmp + _headers["Path"];
     stat(tmp.c_str(), &_stat);
-    fs.open(tmp.c_str(), std::fstream::in);
     if(S_ISDIR(_stat.st_mode))
     {
         _pathDir = tmp;
+        if(_headers["Path"].back() != '/')
+        {
+            _location->isReturn = true;
+            _location->_return.first = 301;
+            _location->_return.second = "http://" + _headers["Host"] + _headers["Path"] + "/";
+            throw "return";
+        }
         for(size_t i = 0; i < _location->indexes.size();i++)
         {
             std::string tmp2;
@@ -186,11 +227,10 @@ void Request::tryFiles()
                 tmp2 = tmp + _location->indexes[i];
             else
                 tmp2 = tmp + "/" + _location->indexes[i];
-            fs.open(tmp2.c_str(), std::fstream::in);
+            stat(tmp2.c_str(), &_stat);
             if(S_ISREG(_stat.st_mode))
             {
                 _pathFile = tmp2;
-                _location->autoindex = false;
                 return ;
             }
         }
@@ -209,7 +249,7 @@ void Request::tryFiles()
 
 void Request::findlocation()
 {
-     std::string tmp;
+    std::string tmp;
     tmp = _headers["Path"];
     if(tmp.back() != '/')
         tmp += "/";
@@ -220,7 +260,8 @@ void Request::findlocation()
         {
             if(tmp == _server->locations[i].path)
             {
-                _location = &_server->locations[i];
+                _mylocation = _server->locations[i];
+                 _location = &_mylocation;
                 break ;
             }
         }
@@ -231,6 +272,8 @@ void Request::findlocation()
         else
             tmp = tmp.substr(0, tmp.find_last_of('/') + 1);
     }
+   
+
 }
 
 void Request::matchlocationForPOST()
@@ -246,7 +289,7 @@ void Request::matchlocationForPOST()
         ss << _headers["Content-Length"];
         ss >> tmp;
         if(tmp > _location->max_body_size)
-            throw (_errorCode = 411,_isError =true ,"method error"); // Length Required
+            throw (_errorCode = 413,_isError =true ,"method error"); // Length Required
     }
     tryfilePost();
     _isReadBody = true;
@@ -257,7 +300,6 @@ void Request::tryfilePost()
 {
     struct stat     _stat;
     std::string     tmp;
-
     tmp = _location->root;
     if(tmp.back() == '/')
         tmp = tmp.substr(0, tmp.length() - 1);
@@ -267,103 +309,162 @@ void Request::tryfilePost()
         return (_pathFile = tmp,void());
     else if(S_ISREG(_stat.st_mode))
         throw (_errorCode = 409,_isError =true ,"method error");
+    else if(_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
+        throw (_errorCode = 404 ,_isError =true ,"method error");
     else
     {
         stat(tmp.substr(0,tmp.find_last_of('/')).c_str(), &_stat);
         if(S_ISDIR(_stat.st_mode))
-        {
             return (_pathFile = tmp,void());
-
-        }
         else
-        {
             throw (_errorCode = 404,_isError = true ,"method error");
+    }
+}
+void Request::checkAccess(std::string path)
+{
+    DIR *dir;
+    std::string tmp;
+    struct dirent *en;
+    struct stat _stat;
+    dir  = opendir(path.c_str());
+    if(dir == NULL)
+        return;
+    while((en = readdir(dir)))
+    {
+        tmp = path + en->d_name;
+        stat(tmp.c_str(),&_stat);
+        if(S_ISDIR(_stat.st_mode))
+        {
+            if(std::string(en->d_name) == "." || std::string(en->d_name) == "..")
+                continue;
+            if(tmp.back() != '/')
+                tmp += '/';
+            removeDir(tmp.c_str());
+        }
+        else if(S_ISREG(_stat.st_mode))
+        {
+            if(access(tmp.c_str(), W_OK) != 0)
+                _isNotRemove = true;
         }
     }
+    if(access(path.c_str(), W_OK) != 0)
+        _isNotRemove = true;
+    closedir(dir);
+}
+
+void Request::removeDir(std::string path)
+{
+    DIR *dir;
+    std::string tmp;
+    struct dirent *en;
+    struct stat _stat;
+    dir  = opendir(path.c_str());
+    if(dir == NULL)
+    {
+        return;
+    }
+    while((en = readdir(dir)))
+    {
+        tmp = path + en->d_name;
+        stat(tmp.c_str(),&_stat);
+        if(S_ISDIR(_stat.st_mode))
+        {
+            if(std::string(en->d_name) == "." || std::string(en->d_name) == "..")
+                continue;
+            if(tmp.back() != '/')
+                tmp += '/';
+            removeDir(tmp.c_str());
+            tmp.pop_back();
+            remove(tmp.c_str());
+        }
+        else if(S_ISREG(_stat.st_mode))
+            remove(tmp.c_str());
+    }
+    if(path.back() == '/')
+        path.pop_back();
+    remove(path.c_str());
+    closedir(dir);
+}
+
+void Request::tryfileDelete()
+{
+    struct stat     _stat;
+    std::string     tmp;
+
+    tmp = _location->root;
+    if(tmp.back() == '/')
+        tmp = tmp.substr(0, tmp.length() - 1);
+    tmp = tmp + _headers["Path"];
+    stat(tmp.c_str(), &_stat);
+    if(S_ISDIR(_stat.st_mode))
+    {
+        if(tmp.back() == '/')
+        {
+            checkAccess(tmp);
+            if(_isNotRemove == true)
+                throw (_errorCode = 403,_isError =true ,"method error");
+            removeDir(tmp);
+        }
+        else
+            throw (_errorCode = 409,_isError =true ,"method error");
+    }else if(S_ISREG(_stat.st_mode))
+            std::remove(tmp.c_str());
+        else
+            throw (_errorCode = 404,_isError =true ,"method error");
+    throw (_errorCode = 204 ,"method error");
 }
 
 void Request::matchlocationForDELETE()
 {
-
+    if(_location->isReturn == true)
+        throw "return";
+    if(std::find(_location->methods.begin(), _location->methods.end(), "DELETE") == _location->methods.end())
+        throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
+    tryfileDelete();
 }
 
-void Request::parseBody()
+void Request::matchCgi()
 {
-    // std::stringstream ss;
-    // std::string *tmp = NULL;
-    // // tmp = getHeader("Content-Length");
-    // // if(tmp)
-    // // {
-    // //     ss << tmp->c_str();
-    // //     ss >> _contentLength;
-    // //     if(_contentLength < _body.length())
-    // //         return (_errorCode = 413 ,void()); // Request Entity Too Large
-    // // }
-    // tmp = getHeader("Content-Type");
-    // if(tmp)
-    // {
-    //     if(tmp->find("boundary=") != std::string::npos)
-    //     {
-    //         _isboundry = true;
-    //         _boundry = tmp->substr(tmp->find("boundary=") + 9);
-    //     }
-    // }
-}
-
-void Request::readBoundry(int fd)
-{
-    char buffer[3040];
-    int ret = 1;
-    ret = recv(fd, buffer, 3040, 0);
-    if(ret > 0)
+    std::string tmp;
+    std::string cgi_path;
+    std::string path;
+    struct stat     _stat;
+    std::string filename;
+    
+    tmp = _headers["Path"];
+    tmp = tmp.substr(tmp.find_last_of('.'));
+    tmp = "*" + tmp;
+    for(size_t i = 0; i < _server->locations.size(); i++)
     {
-        timestamp = time(NULL);
-        _body.append(buffer, ret);
-        _boundry = _headers["Content-Type"].substr(_headers["Content-Type"].find("boundary=") + 9);
-        if(_body.find("--"+_boundry +"--") != std::string::npos)
+        if(_server->locations[i].path == tmp)
         {
-            std::cout << "end" << std::endl;
-            isBodyEnd = true;
+            _isCgi = true;
+            _locationCgi = &_server->locations[i];
+            _location  = _locationCgi;
+            tmp = _headers["Path"];
+            filename = tmp.substr(tmp.find_last_of('/') + 1);
+            if(tmp.find("cgi-bin/") == std::string::npos)
+                _isCgi = false;
+            else
+                path = _locationCgi->cgi_path + "/"+filename;
+            break ;
         }
     }
-
-}
-
-void Request::readBoundrywithChunked()
-{
-
-}
-
-
-void Request::readChunked(int fd)
-{
-    char buffer[3040];
-    int ret = 1;
-    ret = recv(fd, buffer, 3040, 0);
-    if(ret > 0)
+    if(_isCgi == false)
+        return ;
+    if(std::find(_locationCgi->methods.begin(), _locationCgi->methods.end(), _headers["Method"]) == _locationCgi->methods.end())
+        return (_isCgi = false ,void());
+    if(_headers["Method"] == "POST")
+        _isReadBody = true;
+    stat(path.c_str(), &_stat);
+    if(S_ISREG(_stat.st_mode))
     {
-    timestamp = time(NULL);
-    _body.append(buffer, ret);
-    if(_body.find("0\r\n\r\n") != std::string::npos)
-        isBodyEnd = true;
+        _pathFile = path;
+        return ;
     }
+    _isCgi = false;
 }
-void  Request::readContentLength(int fd)
-{
-    char buffer[3040];
-    int ret = 1;
-    ret = recv(fd, buffer, 3040, 0);
-    if(ret > 0)
-    {
-        timestamp = time(NULL);
-        _body.append(buffer, ret);
-        if(_body.length() == _contentLength)
-            isBodyEnd = true;
-        else if(_body.length() > _contentLength || _contentLength > _location->max_body_size)
-            throw (_errorCode = 413 ,"return"); // Request Entity Too Large
 
-    }
-}
 
 
 

@@ -15,6 +15,7 @@ void webserv::init()
         pollfd.fd = servers[i].getSocket();
         pollfd.events = POLLIN;
         pollfds.push_back(pollfd);
+        //printServer(servers[i]);
     }
 }
 
@@ -24,14 +25,23 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
     client.addrlen = sizeof(client.addr);
     client._servers = &servers;
     client._socket  = Accept(server_pollfd.fd, (struct sockaddr *)&client.addr, &client.addrlen);
-    if(client._socket == -1)
+    if(client._socket <= 0 )
         return;
+    // make socket linger
+
+    if(client._socket <= 0 )
+        return;
+    struct linger so_linger;
+    so_linger.l_onoff = 1;
+    so_linger.l_linger = 0;
     client.timestamp = getTime();
     Fcntl(client._socket, F_SETFL, O_NONBLOCK);
+    setsockopt(client._socket, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
     client.serverFd = server_pollfd.fd;
     struct pollfd pollfd;
     pollfd.fd = client._socket;
     pollfd.events = POLLIN;
+    pollfd.revents = 0;
     pollfds.push_back(pollfd);
     clients.push_back(client);
 }
@@ -54,12 +64,20 @@ void webserv::readFromClient(struct pollfd &pollfd)
         if (client == NULL)
             return;
         client->readRequest();
-         
-        if(client->getIsReadBody() == false && client->getIsParsed() == true)
+        if(client->getIsReadBody() == false && client->getIsParsed() == true && client->_isCgi == false)
+        {
             pollfd.events = POLLOUT;
-
+            client->_locationResponse = client->_location;
+            if(client->_locationResponse->isCgi == true)
+            {
+                client->_bodyResponse = client->_body;
+                client->isBodyString = true;
+                client->_file = "/";
+            }
+        }
     }catch(const char *e)
     {
+
         std::string tmp;
         pollfd.events = POLLOUT;
 
@@ -72,15 +90,24 @@ void webserv::readFromClient(struct pollfd &pollfd)
             client->_bodyResponse = client->_body;
             return;
         }
-
-        if(client->_server->error_pages.find(client->getErrorCode()) == client->_server->error_pages.end() )
+        struct stat statbuf;
+        if(client->_server->error_pages.find(client->getErrorCode()) == client->_server->error_pages.end())
         {
             if(client->_isError == true)
                 client->_file = "/";
             client->isBodyString = true;
         }
         else
+        {
+            stat(client->_server->error_pages[client->getErrorCode()].c_str(), &statbuf);
+            if(S_ISREG(statbuf.st_mode) == false)
+            {
+                if(client->_isError == true)
+                    client->_file = "/";
+                client->isBodyString = true;
+            }
             client->_file = client->_server->error_pages[client->getErrorCode()];
+        }
     }
 }
 
@@ -96,7 +123,6 @@ void webserv::pollError(struct pollfd &pollfd, size_t &i)
 {
     if ((pollfd.revents & (POLLERR | POLLNVAL)) || (!(pollfd.revents & POLLIN) && (pollfd.revents & POLLHUP)))
     {
-        //reemove client
         close(pollfd.fd);
         pollfds.erase(pollfds.begin() + i);
         i--;
@@ -113,21 +139,29 @@ bool webserv::isServer(int fd)
 
 void webserv::run()
 {
+    srand(time(NULL));
     while (true)
     {
         pollRevents();
-        for (size_t i = 0; i < pollfds.size(); i++)
+        for (size_t i = 0; i < pollfds.size() ; i++)
         {
-            //pollError(pollfds[i], i);
+            if(pollfds[i].revents == 0)
+                continue;
             if(pollfds[i].revents & POLLIN)
             {
                 if (isServer(pollfds[i].fd))
                     addNewClient(pollfds[i]);
                 else
+                {
                     readFromClient(pollfds[i]);
+                    pollfds[i].revents = 0;
+                }
             }
             else if (pollfds[i].revents & POLLOUT)
+            {
                 writeToClient(pollfds[i]);
+                 pollfds[i].revents = 0;
+            }
         }
         checkTimeout();
     }
@@ -161,13 +195,10 @@ void webserv::checkTimeout()
 {
     for (size_t i = 0; i < clients.size(); i++)
     {
-        // std::cout << "timeout : " << getTime() - clients[i].timestamp  << std::endl;
         if (getTime() - clients[i].timestamp > TIMEOUT)
-        {   
-
-            std::cout << "<<<<<<<<timeout>>>>>>>>>>>>" << std::endl;
+        {
+            std::string response = "HTTP/1.1 408 Request Timeout\r\n\r\n";
             closeClient(clients[i]._socket);
-            i--;
         }
     }
 }

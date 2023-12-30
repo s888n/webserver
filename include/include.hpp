@@ -1,0 +1,30 @@
+#ifndef INCLUDE_HPP
+#define INCLUDE_HPP
+
+    #include "../server/server.hpp"
+    #include "../utils/utils.hpp"
+    #include "../webserv/webserv.hpp"
+    #include <iostream>
+    #include <fstream>
+    #include <sstream>
+    #include <cstring>
+    #include "../webserv/webserv.hpp"
+    #include "../server/location.hpp"
+    #include <limits.h>
+    #include <map>
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <unistd.h>
+    #include <fcntl.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <sys/time.h>
+    #include <sys/wait.h>
+    #include <poll.h>
+    #include <string>
+    #include <vector>
+    #include <utility>
+    #include <iostream>
+    #include "../webserv/webserv.hpp"
+#endif

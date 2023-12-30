@@ -57,5 +57,6 @@ class parser
         void setDefaultLocation(server &server);
         void validateServersNames();
 };
+void printServer(server &s);
 
 #endif

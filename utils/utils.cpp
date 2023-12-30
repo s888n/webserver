@@ -40,13 +40,6 @@ size_t Send (int socket, const void *buffer, size_t length, int flags)
     return ret;
 }
 
-size_t Recv (int socket, void *buffer, size_t length, int flags)
-{
-    size_t ret = recv(socket, buffer, length, flags);
-    if (ret < 0)
-        perror("recv error");
-    return ret;
-}
 
 int Close(int fd)
 {
