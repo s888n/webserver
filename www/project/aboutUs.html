@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
     <title>Document</title>
     <style>
         body {
@@ -102,6 +103,25 @@
             height: 100%;
             background-color: #000;
             z-index: 1;
+            transition: 2S;
+            border-radius: 20%;
+
+        }
+        #hero #left:hover {
+            background-color: blueviolet;
+            transition: 2s ;
+            /* box-shadow: 10px 10px 10px 10px #8400ff; */
+            /* border: 2pc solid white; */
+            /* border: #8400ff 2px solid; */
+            
+        }
+        #hero #right:hover {
+            background-color: blueviolet;
+            transition: 2s ;
+            /* box-shadow: 10px 10px 10px 10px #8400ff; */
+            /* border: 2pc solid white; */
+            /* border: #8400ff 2px solid; */
+            
         }
         #hero #right {
             position: absolute;
@@ -111,6 +131,8 @@
             height: 100%;
             background-color: #000;
             z-index: 1;
+            transition: 2S;
+            border-radius: 20%;
         }
         #hero #circle-image {
             position: absolute;
@@ -156,7 +178,7 @@
             <a  id="nev_a" href="../cgi-bin/hello.py">Videos</a>
         </div>
         <div>
-            <a   id="nev_a" href="upload.html">Upload</a>
+            <a   id="nev_a" href="../cgi-bin/upload.py">Upload</a>
         </div>
         <div>
             <a  class="change"  href="aboutUs.html">about us</a>
@@ -165,24 +187,20 @@
     <div id="hero">
         <div id="left">
             <div>
-                <img id="circle-image" src="monkey.jpg" alt="Description of image" >
+                <a href="/hyounsi">
+                    <img id="circle-image" src="images.png" alt="Description of image" >
+                </a>
             </div>
-            <div>
-                <p>
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusamus nam, provident iste tenetur exercitationem natus ab, voluptates deserunt pariatur magnam, molestiae quidem reprehenderit. Ipsam tenetur cum consequatur impedit, beatae debitis corporis similique illo architecto quos minima facilis eius, facere nulla quis, 
-                    excepturi ad aliquid non. Ipsa repellat numquam fuga quasi?
-                </p>
-            </div>
+
         </div>
         <div id="right">
             <div>
-                <img  id="circle-image" src="monkey.jpg" alt="Description of image" >
+                <a href="/srachdi">
+                    <img  id="circle-image" src="sss.jpeg" alt="Description of image" >
+                </a>
             </div>
             <div>
-                <p>
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusamus nam, provident iste tenetur exercitationem natus ab, voluptates deserunt pariatur magnam, molestiae quidem reprehenderit. Ipsam tenetur cum consequatur impedit, beatae debitis corporis similique illo architecto quos minima facilis eius, facere nulla quis, 
-                    excepturi ad aliquid non. Ipsa repellat numquam fuga quasi?
-                </p>
+            </div>
         </div>
     </div>
 </body>

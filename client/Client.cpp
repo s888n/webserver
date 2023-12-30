@@ -87,6 +87,7 @@ void Client::readheader()
         return;
     matchlocation();
     _file = _pathFile;
+   
 }
 
 void Client::readHyprid(int fd)

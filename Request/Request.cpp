@@ -194,8 +194,9 @@ void Request::matchlocationForGET()
         throw "return";
     if(std::find(_location->methods.begin(), _location->methods.end(), "GET") == _location->methods.end())
         throw (_errorCode = 405,_isError =true ,"method error"); // Method Not Allowed
-    
     tryFiles();
+    if(access(_pathFile.c_str(), R_OK) != 0)
+        throw (_errorCode = 403,_isError =true ,"method error"); // Forbidden
 }
 
 void Request::tryFiles()
@@ -306,7 +307,11 @@ void Request::tryfilePost()
     tmp = tmp + _headers["Path"];
     stat(tmp.c_str(), &_stat);
     if(S_ISDIR(_stat.st_mode))
+    {
+        if(access(tmp.c_str(), W_OK) != 0)
+            throw (_errorCode = 403,_isError =true ,"method error");
         return (_pathFile = tmp,void());
+    }
     else if(S_ISREG(_stat.st_mode))
         throw (_errorCode = 409,_isError =true ,"method error");
     else if(_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"].find("boundary=") != std::string::npos)
@@ -315,7 +320,11 @@ void Request::tryfilePost()
     {
         stat(tmp.substr(0,tmp.find_last_of('/')).c_str(), &_stat);
         if(S_ISDIR(_stat.st_mode))
+        {
+            if(access(tmp.substr(0,tmp.find_last_of('/')).c_str(), W_OK) != 0)
+                throw (_errorCode = 403,_isError =true ,"method error");
             return (_pathFile = tmp,void());
+        }
         else
             throw (_errorCode = 404,_isError = true ,"method error");
     }

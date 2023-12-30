@@ -156,22 +156,32 @@ button:hover {
 <body>
     <div class="nav">
         <div>
-            <a href="index.html">
-                <img src="images.png" alt="Description of image" width="40px" >
+            <a href="../project/index.html">
+                <img src="../project/images.png" alt="Description of image" width="40px" >
             </a>
         </div>
         <div>
-            <a id="nev_a" href="index.html">Home</a>
+            <a id="nev_a" href="../project/index.html">Home</a>
         </div>
         <div>
-            <a  id="nev_a" href="../cgi-bin/hello.py">Videos</a>
+            <a  id="nev_a" href="hello.py">Videos</a>
         </div>
         <div>
-            <a   class="change" href="upload.html">Upload</a>
+            <a   class="change" href="upload.py">Upload</a>
         </div>
         <div>
-            <a  id="nev_a" href="aboutUs.html">about us</a>
+            <a  id="nev_a" href="../project/aboutUs.html">about us</a>
         </div>
+        <div>
+            <a  id="nev_a" onclick='return logOut()'>LOG out</a>
+        </div>
+         <script>
+    function logOut(){
+        document.cookie = "sessionId=delete; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+        document.location.href = "../project/login.html";
+
+        }
+    </script>
     </div>
     <div class="upload-container">
         <h1>File Upload</h1>

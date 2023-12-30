@@ -48,6 +48,7 @@
             }
         #but{
             font-family: 'Montserrat', sans-serif;
+            background-color: burlywood;
             display: inline-block;
             text-transform: uppercase;
             color: #ff005a;
@@ -107,39 +108,6 @@
             text-align: center;
 
         }
-        #link-list >  div:nth-child(1n + 4)
-        {
-            grid-column: 3;
-        }
-        #link-list >  div:nth-child(1)
-        {
-            order: 0;
-        }
-        #link-list >  div:nth-child(4)
-        {
-            order: 1;
-        }
-        #link-list >  div:nth-child(2)
-        {
-            order: 2;
-        }
-        #link-list >  div:nth-child(5)
-        {
-            order: 3;
-        }
-        #link-list >  div:nth-child(3)
-        {
-            order: 4;
-        }
-        #link-list >  div:nth-child(6)
-        {
-            order: 5;
-        }
-        #link-list div:hover {
-            background-color: #8400ff;
-            cursor: pointer;
-        }
-
 
     </style>
 </head>
@@ -169,12 +137,12 @@
     </div>
     <!-- 2 columns of anchor tags , 3 rows each -->
     <div id="link-list">
-        <div>  <a href="../database.html" >Database</a> </div>
-        <div>  <a href="../cgi-bin/randomImage.py" >Random Image</a> </div>
-        <div>  <a href="../cgi-bin/quotes.py" >Quotes</a> </div>
-        <div>  <a href="#" >Cookies</a> </div>
-        <div>  <a href="#" >Test</a> </div>
-        <div>  <a href="../cgi-bin/while.py" >While</a> </div>
+        <div>  <a id="but" href="../database.html" >Database</a> </div>
+        <div>  <a id="but" href="../cgi-bin/randomImage.py" >Random Image</a> </div>
+        <div>  <a id="but" href="../cgi-bin/quotes.py" >Quotes</a> </div>
+        <div>  <a id="but" href="#" >Cookies</a> </div>
+        <div>  <a id="but" href="#" >Test</a> </div>
+        <div>  <a id="but" href="../cgi-bin/while.py" >While</a> </div>
     </div> 
 </body>
 </html>

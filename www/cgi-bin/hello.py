@@ -196,7 +196,7 @@ button:hover {
             <a  id="nev_a"  href="upload.py">Upload</a>
         </div>
         <div>
-            <a  id="nev_a" href="../abouUs.html">about us</a>
+            <a  id="nev_a" href="../project/abouUs.html">about us</a>
         </div>
         <div>
             <a  id="nev_a" onclick='return logOut()'>LOG out</a>
