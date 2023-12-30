@@ -1,5 +1,12 @@
 #include "cgi.hpp"
 
+void sigalarmHandler(int sig)
+{
+    (void)sig;
+    kill(getpid(), SIGKILL);
+    std::cerr << "CGI : script took too long to execute" << std::endl;
+}
+
 cgi::cgi(std::string _compiler, std::string _scriptPath, std::string _request)
 {
     statusCode = 0;
@@ -86,8 +93,10 @@ void cgi::excuteCgi()
         close(pipefd[0]); 
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
+        signal(SIGALRM, sigalarmHandler);
+        alarm(2);
         execve(argv[0], argv, envp);
-        // perror("execve Failed djkasdjk asdjk jaksdk ");
+        perror("execve Failed ");
         exit(EXIT_FAILURE);
     }
     else
