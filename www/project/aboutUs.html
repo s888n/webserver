@@ -81,8 +81,65 @@
             color: #8400ff;
             }
 
+        #hero {
+            /* position the hero under the nav bar */
 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
 
+            width: 80%;
+            height: 80%;
+            /* background-color: #000; */
+            overflow:hidden;
+        }
+        #hero #left {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
+            background-color: #000;
+            z-index: 1;
+        }
+        #hero #right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background-color: #000;
+            z-index: 1;
+        }
+        #hero #circle-image {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+        }
+        #hero #circle-image:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            transition: 0.5s all;
+
+            /* width: 450px;
+            height: 450px; */
+        }
+        #hero p {
+            position: absolute;
+            top: 90%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            color: #fff;
+            font-size: 1.5rem;
+            text-align: center;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -105,6 +162,28 @@
             <a  class="change"  href="aboutUs.html">about us</a>
         </div>
     </div>
-
+    <div id="hero">
+        <div id="left">
+            <div>
+                <img id="circle-image" src="monkey.jpg" alt="Description of image" >
+            </div>
+            <div>
+                <p>
+                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusamus nam, provident iste tenetur exercitationem natus ab, voluptates deserunt pariatur magnam, molestiae quidem reprehenderit. Ipsam tenetur cum consequatur impedit, beatae debitis corporis similique illo architecto quos minima facilis eius, facere nulla quis, 
+                    excepturi ad aliquid non. Ipsa repellat numquam fuga quasi?
+                </p>
+            </div>
+        </div>
+        <div id="right">
+            <div>
+                <img  id="circle-image" src="monkey.jpg" alt="Description of image" >
+            </div>
+            <div>
+                <p>
+                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusamus nam, provident iste tenetur exercitationem natus ab, voluptates deserunt pariatur magnam, molestiae quidem reprehenderit. Ipsam tenetur cum consequatur impedit, beatae debitis corporis similique illo architecto quos minima facilis eius, facere nulla quis, 
+                    excepturi ad aliquid non. Ipsa repellat numquam fuga quasi?
+                </p>
+        </div>
+    </div>
 </body>
 </html>

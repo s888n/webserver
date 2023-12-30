@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Webserv - Home</title>
     <style>
         body {
             background-color:  black;
@@ -47,7 +47,7 @@
             color: #8400ff;
             }
         #but{
-            ont-family: 'Montserrat', sans-serif;
+            font-family: 'Montserrat', sans-serif;
             display: inline-block;
             text-transform: uppercase;
             color: #ff005a;
@@ -81,7 +81,64 @@
             color: #8400ff;
             }
 
+        #mainImage {
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #link-list {
+            /* place this div under the image */
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            /* make the div a grid */ 
 
+            display:  grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            color: #fff;
+            font-size: 30px;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+
+        }
+        #link-list >  div:nth-child(1n + 4)
+        {
+            grid-column: 3;
+        }
+        #link-list >  div:nth-child(1)
+        {
+            order: 0;
+        }
+        #link-list >  div:nth-child(4)
+        {
+            order: 1;
+        }
+        #link-list >  div:nth-child(2)
+        {
+            order: 2;
+        }
+        #link-list >  div:nth-child(5)
+        {
+            order: 3;
+        }
+        #link-list >  div:nth-child(3)
+        {
+            order: 4;
+        }
+        #link-list >  div:nth-child(6)
+        {
+            order: 5;
+        }
+        #link-list div:hover {
+            background-color: #8400ff;
+            cursor: pointer;
+        }
 
 
     </style>
@@ -106,6 +163,18 @@
             <a  id="nev_a" href="aboutUs.html">about us</a>
         </div>
     </div>
-
+    <!-- an image at the center of the page -->
+    <div id="mainImage" >
+        <img src="computer.png" alt="illustration of a computer" width="500px">
+    </div>
+    <!-- 2 columns of anchor tags , 3 rows each -->
+    <div id="link-list">
+        <div>  <a href="../database.html" >Database</a> </div>
+        <div>  <a href="../cgi-bin/randomImage.py" >Random Image</a> </div>
+        <div>  <a href="../cgi-bin/quotes.py" >Quotes</a> </div>
+        <div>  <a href="#" >Cookies</a> </div>
+        <div>  <a href="#" >Test</a> </div>
+        <div>  <a href="../cgi-bin/while.py" >While</a> </div>
+    </div> 
 </body>
 </html>
