@@ -30,12 +30,12 @@ void Client::readRequest()
         if(_cgi->statusCode != 0)
             throw (delete _cgi ,_errorCode = 500, _isError = true, "return");
         tmp = _cgi->getResponse();
-        std::cout << tmp << std::endl;
+        //std::cout << tmp << std::endl;
         if(tmp.size() > 0 && tmp.find("\r\n\r\n") != std::string::npos)
         {
             _body = tmp.substr(tmp.find("\r\n\r\n") + 4);
             tmp = tmp.substr(0, tmp.find("\r\n\r\n")+4);
-            std::cout << tmp << std::endl;
+            //std::cout << tmp << std::endl;
             while(tmp != "\r\n" && tmp != "")
             {
                 _headersCgi.push_back(std::make_pair(tmp.substr(0,tmp.find(":")), tmp.substr(tmp.find(":") + 2, tmp.find("\r\n")-tmp.find(":") - 2)));
@@ -71,7 +71,7 @@ void Client::readheader()
     timestamp = time(NULL);
     if (_request.find("\r\n\r\n") == std::string::npos)
         return;
-    std::cout << _request << std::endl;
+    //std::cout << _request << std::endl;
     _isparsed = true;
     ParseRequest(_request.substr(0, _request.find("\r\n\r\n") + 4));
     _server = &findServer();
