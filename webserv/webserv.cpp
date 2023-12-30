@@ -198,6 +198,9 @@ void webserv::checkTimeout()
         if (getTime() - clients[i].timestamp > TIMEOUT)
         {
             std::string response = "HTTP/1.1 408 Request Timeout\r\n\r\n";
+          int ret = send(clients[i]._socket, response.c_str(), response.size(), 0);
+            if(ret <= 0)
+                std::cout << "send error" << std::endl;
             closeClient(clients[i]._socket);
         }
     }
