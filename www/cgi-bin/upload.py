@@ -1,5 +1,7 @@
 import os
 import cgi
+import csv
+import sys
 
 import http.cookies
 
@@ -7,8 +9,25 @@ form = cgi.FieldStorage()
 
 cookie_string = os.environ.get('HTTP_COOKIE',"no cookie")
 cookie = http.cookies.SimpleCookie()
+f = "www/cgi-bin/sessionid.csv"
+if(cookie_string == "no cookie" or cookie_string.find("sessionId") == -1):
+    print("location: /project/login.html\r\n\r\n",end="")
+    exit(0)
 
-if(cookie_string == "no cookie"):
+
+
+sessionId = cookie_string[cookie_string.find("sessionId=") + 10:]
+sys.stderr.write("sessionId: " + sessionId + "\n")
+sys.stderr.write("cookie_string: " + cookie_string + "\n")
+valid = False
+with open(f, 'r') as file:
+    reader = csv.reader(file)
+    for row in reader:
+        sys.stderr.write("row: " + row[0] + "\n")
+        if(row[0] == sessionId):
+            valid = True
+            break
+if(valid == False):
     print("location: /project/login.html\r\n\r\n",end="")
     exit(0)
 

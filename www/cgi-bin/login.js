@@ -31,11 +31,6 @@ if (cookies.sessionId) {
     }
 
     );
-    if (sessionIdExists == false) {
-        fs.appendFile(sessionidDatabase, cookies.sessionId + "\n", function (err) {
-            if (err) throw err;
-        });
-    }
     }
 
 
@@ -66,7 +61,13 @@ async function processData() {
             if (username === storedUsername && password === storedPassword ) {
 
                 if(sessionIdExists == false)
-                    process.stdout.write ("set-cookie: sessionId="+Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)+"; path=/\r\n");
+                {
+                    var key = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                    fs.appendFile(sessionidDatabase, key + "\n", function (err) {
+                        if (err) throw err;
+                    });
+                    process.stdout.write ("set-cookie: sessionId="+ key + "; path=/\r\n");
+                }
                 // process.stdout.write ("set-cookie: sessionId=deleted; path=/ ; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\n");
                 process.stdout.write ("location: /project/index.html\r\n\r\n");
                 return;

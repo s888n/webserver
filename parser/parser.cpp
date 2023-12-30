@@ -418,56 +418,7 @@ bool parser::directiveExists(std::string directive, stringVector &values)
     return false;
 }
 
-void printServer(server &s)
-{
-    std::cout << "port: " << s.port << std::endl;
-    std::cout << "host: " << s.host << std::endl;
-    std::cout << "root: " << s.root << std::endl;
-    std::cout << "indexes: ";
-    for (size_t i = 0; i < s.indexes.size(); i++)
-        std::cout << s.indexes[i] << " ";
-    std::cout << std::endl;
-    std::cout << "methods: ";
-    for (size_t i = 0; i < s.methods.size(); i++)
-        std::cout << s.methods[i] << " ";
-    std::cout << std::endl;
-    std::cout << "server_names: ";
-    for (size_t i = 0; i < s.server_names.size(); i++)
-        std::cout << s.server_names[i] << " ";
-        std::cout << std::endl;
-    std::cout << "error_pages: ";
-    for (std::map<int, std::string>::iterator it = s.error_pages.begin(); it != s.error_pages.end(); it++)
-        std::cout << it->first << " " << it->second << " ";
-        std::cout << std::endl;
-    std::cout << "autoindex: " << s.autoindex << std::endl;
-    std::cout << "max_body_size: " << s.max_body_size << std::endl;
-    std::cout << "locations: " << std::endl;
-    for (size_t i = 0; i < s.locations.size(); i++)
-    {
-        std::cout << "path: " << s.locations[i].path << std::endl;
-        std::cout << "autoindex: " << s.locations[i].autoindex << std::endl;
-        std::cout << "isReturn: " << s.locations[i].isReturn << std::endl;
-        std::cout << "isCgi: " << s.locations[i].isCgi << std::endl;
-        std::cout << "compiler: " << s.locations[i].compiler << std::endl;
-        std::cout << "cgi_path: " << s.locations[i].cgi_path << std::endl;
-        std::cout << "max_body_size: " << s.locations[i].max_body_size << std::endl;
-        std::cout << "root: " << s.locations[i].root << std::endl;
-        std::cout << "indexes: ";
-        for (size_t j = 0; j < s.locations[i].indexes.size(); j++)
-            std::cout << s.locations[i].indexes[j] << " ";
-        std::cout << std::endl;
-        std::cout << "methods: ";
-        for (size_t j = 0; j < s.locations[i].methods.size(); j++)
-            std::cout << s.locations[i].methods[j] << " ";
-        std::cout << std::endl;
-        std::cout << "error_pages: ";
-        for (std::map<int, std::string>::iterator it = s.locations[i].error_pages.begin(); it != s.locations[i].error_pages.end(); it++)
-            std::cout << it->first << " " << it->second << " ";
-        std::cout << std::endl;
-        std::cout << "return: " << s.locations[i]._return.first << " " << s.locations[i]._return.second << std::endl;
-        std::cout << "-------------------" << std::endl;
-    }
-}
+
 
 void parser::validateDirectiveCount(stringVector &values)
 {

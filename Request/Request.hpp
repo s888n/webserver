@@ -61,7 +61,6 @@ class Request
 
         bool getIsReadBody();
         int getErrorCode();
-        bool getIsheaderIsRecv();
         ~Request();
         void tryfilePost();
         void tryfileDelete();

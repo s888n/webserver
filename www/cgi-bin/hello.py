@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 import os
 import cgi
+import csv
+import sys
 
 import http.cookies
 
@@ -8,11 +10,22 @@ form = cgi.FieldStorage()
 
 cookie_string = os.environ.get('HTTP_COOKIE',"no cookie")
 cookie = http.cookies.SimpleCookie()
-
-if(cookie_string == "no cookie"):
+f = "www/cgi-bin/sessionid.csv"
+if(cookie_string == "no cookie" or cookie_string.find("sessionId") == -1):
     print("location: /project/login.html\r\n\r\n",end="")
     exit(0)
-    
+
+sessionId = cookie_string[cookie_string.find("sessionId=") + 10:]
+valid = False
+with open(f, 'r') as file:
+    reader = csv.reader(file)
+    for row in reader:
+        if(row[0] == sessionId):
+            valid = True
+            break
+if(valid == False):
+    print("location: /project/login.html\r\n\r\n",end="")
+    exit(0)
 
 
 print("Content-Type: text/html\r\n\r\n",end="")
@@ -196,7 +209,7 @@ button:hover {
             <a  id="nev_a"  href="upload.py">Upload</a>
         </div>
         <div>
-            <a  id="nev_a" href="../project/abouUs.html">about us</a>
+            <a  id="nev_a" href="../project/aboutUs.html">about us</a>
         </div>
         <div>
             <a  id="nev_a" onclick='return logOut()'>LOG out</a>

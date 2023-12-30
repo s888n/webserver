@@ -33,7 +33,7 @@ class Client : public Request, public Response
         struct sockaddr_in addr;
         socklen_t addrlen;
         int serverFd;
-        bool isBodyString;
+        
         std::string filename;
         std::string boundary;
         std::string _bodyHyprid;
@@ -47,7 +47,6 @@ class Client : public Request, public Response
         bool getIsParsed() const;
         void fillResponseMap();
         bool checkReturn();
-        void parseRequestBody();
         void createFile(std::string path);
         void createFile(std::string path,std::string &fileContent);
         void parseMultipartData();

@@ -51,7 +51,7 @@ void webserv::writeToClient(struct pollfd &pollfd)
     if(client == NULL)
         return;
         client->sendResponse();
-    if(client->getIsBodyEnd() == true)
+    if(client->_isBodyEnd == true)
         closeClient(pollfd.fd);
 }
 
@@ -72,7 +72,7 @@ void webserv::readFromClient(struct pollfd &pollfd)
             {
                 client->_bodyResponse = client->_body;
                 client->isBodyString = true;
-                client->_file = "/";
+                // client->_file = "/";
             }
         }
     }catch(const char *e)
@@ -85,7 +85,7 @@ void webserv::readFromClient(struct pollfd &pollfd)
         client->_locationResponse = client->_location;
         if(client->checkReturn() == true)
         {
-            client->_file = "/";
+            // client->_file = "/";
             client->isBodyString = true;
             client->_bodyResponse = client->_body;
             return;
@@ -102,8 +102,8 @@ void webserv::readFromClient(struct pollfd &pollfd)
             stat(client->_server->error_pages[client->getErrorCode()].c_str(), &statbuf);
             if(S_ISREG(statbuf.st_mode) == false)
             {
-                if(client->_isError == true)
-                    client->_file = "/";
+                // if(client->_isError == true)
+                //     client->_file = "/";
                 client->isBodyString = true;
             }
             client->_file = client->_server->error_pages[client->getErrorCode()];
@@ -200,7 +200,7 @@ void webserv::checkTimeout()
             std::string response = "HTTP/1.1 408 Request Timeout\r\n\r\n";
           int ret = send(clients[i]._socket, response.c_str(), response.size(), 0);
             if(ret <= 0)
-                std::cout << "send error" << std::endl;
+                closeClient(clients[i]._socket);
             closeClient(clients[i]._socket);
         }
     }

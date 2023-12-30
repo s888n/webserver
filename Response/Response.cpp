@@ -17,11 +17,13 @@ Response::Response()
     _status[400] = "Bad Request";
     _status[401] = "Unauthorized";
     _status[403] = "Forbidden";
+
     _status[404] = "Not Found";
     _status[405] = "Method Not Allowed";
     _status[406] = "Not Acceptable";
     _status[408] = "Request Timeout";
     _status[409] = "Conflict";
+    _status[411] = "Length Required";
     _status[413] = "Payload Too Large";
     _status[414] = "URI Too Long";
     _status[408] = "Request Timeout";
@@ -93,23 +95,10 @@ Response::Response()
     _MimeType[".rpm"] = "application/x-rpm";
     _MimeType[".rss"] = "application/rss+xml";
     _MimeType[".dmg"] = "application/x-apple-diskimage";
-
-
-
-    _errorPages[400] = "error_pages/400.html";
-    _errorPages[401] = "error_pages/401.html";
-    _errorPages[403] = "error_pages/403.html";
-    _errorPages[404] = "error_pages/404.html";
-    _errorPages[405] = "error_pages/405.html";
-    _errorPages[413] = "error_pages/413.html";
-    _errorPages[414] = "error_pages/414.html";
-    _errorPages[500] = "error_pages/500.html";
-    _errorPages[501] = "error_pages/501.html";
-    _errorPages[505] = "error_pages/505.html";
-
     _isheadSend = false;
     _isBodyEnd = false;
     _isConnectionClose = false;
+    isBodyString = false;
     _locationResponse = NULL;
 }
 
@@ -145,16 +134,18 @@ void Response::sendHeaders(int fd)
     struct stat filestat;
     stat(_file.c_str(), &filestat);
     fillResponseMap();
-    // fileSend.open(_file, std::ios::in);
     if(!S_ISREG(filestat.st_mode))
         makeBody();
-    // if(fileSend.is_open())
-        createLengthHeader();
+    createLengthHeader();
     fileSend.close();
     makeHeader(_statusCode);
     ret = send(fd,_header.c_str(),_header.size(),0);
     if(ret <= 0)
+    {
+        _isBodyEnd = true;
+        _isConnectionClose = true;
         return;
+    }
     _isheadSend = true;
 }
 
@@ -273,6 +264,8 @@ Response& Response::operator=(Response const &main)
         _locationResponse = main._locationResponse;
         _servername = main._servername;
         _contentLengthSend = main._contentLengthSend;
+        _headersCgi = main._headersCgi;
+        isBodyString = main.isBodyString;
     }
     return *this;
 }
@@ -312,6 +305,7 @@ void Response::fillResponseMap()
         _headersResponse["Connection"] = "close";
     else
         _headersResponse["Connection"] = "keep-alive";
+    _headersResponse["cache-control"] = "no-store";
 
 }
 void  Response::sendExaption(int fd, int status)
@@ -320,62 +314,47 @@ void  Response::sendExaption(int fd, int status)
     (void) status;
 }
 
-bool Response::getIsBodyEnd() const
-{
-    return _isBodyEnd;
-}
-
 void Response::createLengthHeader()
 {
-    std::stringstream ss;
-    size_t pos = 0;
     struct stat filestat;
     stat(_file.c_str(), &filestat);
-    if(_bodyResponse.size() > 0)
+    if(isBodyString == true)
         _headersResponse["Content-Length"] = std::to_string(_bodyResponse.size());
-    else if(_headersRequest.find("Range") != _headersRequest.end())
-    {
-        std::string tmp = _headersRequest["Range"];
-        tmp = tmp.substr(tmp.find("=") + 1);
-        ss << tmp;
-        ss >> pos;
-        _headersResponse["Content-Length"] = std::to_string(filestat.st_size - pos);
-        fileSend.seekg(pos);
-        _headersResponse["Content-Range"] = "bytes " + std::to_string(pos) + "-" + std::to_string(filestat.st_size - 1) + "/" + std::to_string(filestat.st_size);
-        _headersResponse["Accept-Ranges"] = "bytes";
-        _statusCode = 206;
-
-    }else
+    else
         _headersResponse["Content-Length"] = std::to_string(filestat.st_size);
 }
 
 
-bool Response::getIsConnectionClose() const
-{
-    return _isConnectionClose;
-}
 
  void Response::sendBodyString(int fd)
  {
-        int ret;
+        int ret = 0;
         std::string tmp;
-        if(_bodyResponse.size() > 1024)
+        if(_bodyResponse.size() > 5000)
         {
             tmp = _bodyResponse.substr(0,1024);
             ret = send(fd,tmp.c_str(),1024,0);
-            _bodyResponse = _bodyResponse.substr(1024);
-            if(ret <= 0 || _bodyResponse.size() == 0)
-            {
-                _isBodyEnd = true;
-                _isConnectionClose = true;
-            }
-        }else 
-        {
-            ret = send(fd,_bodyResponse.c_str(),_bodyResponse.size(),0);
             if(ret <= 0)
             {
                 _isBodyEnd = true;
                 _isConnectionClose = true;
+                return;
+            }
+            _bodyResponse = _bodyResponse.substr(ret);
+        }else 
+        {
+            if(_bodyResponse.size() == 0)
+            {
+                _isBodyEnd = true;
+                return;
+            }
+            ret = send(fd,_bodyResponse.c_str(),_bodyResponse.size(),0);
+            _bodyResponse = _bodyResponse.substr(ret);
+            if(ret <= 0 )
+            {
+                _isBodyEnd = true;
+                _isConnectionClose = true;
+                return;
             }
             _bodyResponse.clear();
         }
@@ -410,6 +389,5 @@ void Response::makeBody()
          _bodyResponse += "<hr>\n<pre>\n";
          _bodyResponse += "<h4 align=\"center\">Server: " + _servername + "</h4>\n";
         _bodyResponse += "</body>\n</html>";
-        // makeErroPage(_bodyResponse, _status[_statusCode], _statusCode);
     }
 }

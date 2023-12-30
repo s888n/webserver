@@ -40,10 +40,6 @@ bool Request::getIsReadBody()
     return _isReadBody;
 }
 
-bool Request::getIsheaderIsRecv()
-{
-    return _headerIsRecv;
-}
 
 void Request::ParseRequest(std::string request)
 {

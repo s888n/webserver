@@ -21,13 +21,14 @@ class Response
         int             _statusCode;
         std::string     _header;
         bool            _isheadSend;
-        bool           _isBodyEnd;
         bool            _isConnectionClose;
         std::string     _servername;
         size_t          _contentLengthSend;
         std::vector<std::pair<std::string, std::string> > _headersCgi;
 
     public:
+        bool _isBodyEnd;
+        bool isBodyString;
         std::map <std::string, std::string> _headersRequest;
         location        *_locationResponse;
         std::string     _bodyResponse;
@@ -41,12 +42,9 @@ class Response
         void sendBodyString(int fd);
         void makeBody();
         void sendRangeBody(int fd,size_t start);
-        bool getIsheadSend() const;
         void sendExaption(int fd, int status);
         void fillResponseMap();
         void createLengthHeader();
-        bool getIsBodyEnd() const;
-        bool getIsConnectionClose() const;
         ~Response();
 };
 
