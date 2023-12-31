@@ -1,5 +1,5 @@
 #include "webserv.hpp"
-
+#include <sys/ioctl.h>
 webserv::webserv(std::string &filename)
 {
     parser parser(filename);
@@ -31,12 +31,8 @@ void webserv::addNewClient(struct pollfd &server_pollfd)
 
     if(client._socket <= 0 )
         return;
-    struct linger so_linger;
-    so_linger.l_onoff = 1;
-    so_linger.l_linger = 0;
     client.timestamp = getTime();
     Fcntl(client._socket, F_SETFL, O_NONBLOCK);
-    setsockopt(client._socket, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
     client.serverFd = server_pollfd.fd;
     struct pollfd pollfd;
     pollfd.fd = client._socket;
@@ -52,7 +48,16 @@ void webserv::writeToClient(struct pollfd &pollfd)
         return;
         client->sendResponse();
     if(client->_isBodyEnd == true)
+    {
+         if(client->_headersRequest.find("Connection") != client->_headersRequest.end() && client->_headersRequest["Connection"] == "close")
+         {
+            struct linger so_linger;
+            so_linger.l_onoff = 1;
+            so_linger.l_linger = 0;
+            setsockopt(pollfd.fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
+         }
         closeClient(pollfd.fd);
+    }
 }
 
 void webserv::readFromClient(struct pollfd &pollfd)
@@ -102,8 +107,8 @@ void webserv::readFromClient(struct pollfd &pollfd)
             stat(client->_server->error_pages[client->getErrorCode()].c_str(), &statbuf);
             if(S_ISREG(statbuf.st_mode) == false)
             {
-                // if(client->_isError == true)
-                //     client->_file = "/";
+                if(client->_isError == true)
+                    client->_file = "/";
                 client->isBodyString = true;
             }
             client->_file = client->_server->error_pages[client->getErrorCode()];

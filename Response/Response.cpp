@@ -229,6 +229,13 @@ void Response::sendRangeBody(int fd ,size_t start)
     _header += "\r\n";
     _header.append(buffer, ret);
     ret = send(fd,_header.c_str(),_header.size(),0);
+    if(ret <= 0)
+    {
+        _isBodyEnd = true;
+        _isConnectionClose = true;
+        fileSend.close();
+        return;
+    }
     fileSend.close();
     _isBodyEnd = true;
 }
@@ -349,14 +356,13 @@ void Response::createLengthHeader()
                 return;
             }
             ret = send(fd,_bodyResponse.c_str(),_bodyResponse.size(),0);
-            _bodyResponse = _bodyResponse.substr(ret);
             if(ret <= 0 )
             {
                 _isBodyEnd = true;
                 _isConnectionClose = true;
                 return;
             }
-            _bodyResponse.clear();
+            _bodyResponse = _bodyResponse.substr(ret);
         }
  }
 

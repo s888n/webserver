@@ -17,13 +17,10 @@ if(cookie_string == "no cookie" or cookie_string.find("sessionId") == -1):
 
 
 sessionId = cookie_string[cookie_string.find("sessionId=") + 10:]
-sys.stderr.write("sessionId: " + sessionId + "\n")
-sys.stderr.write("cookie_string: " + cookie_string + "\n")
 valid = False
 with open(f, 'r') as file:
     reader = csv.reader(file)
     for row in reader:
-        sys.stderr.write("row: " + row[0] + "\n")
         if(row[0] == sessionId):
             valid = True
             break
