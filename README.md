@@ -2,7 +2,7 @@
 
 ## Description
 
-This project is an Nginx-Like web server that can handle multiple clients at once. It is able to serve static files and dynamic content. The server is able to handle GET, POST, PUT, DELETE requests and can also handle CGI scripts
+This project is an Nginx-Like HTTP web server that can handle multiple clients at once. It is able to serve static files and dynamic content. The server is able to handle GET, POST, PUT, DELETE requests and can also handle CGI scripts
 
 ## Requirements
 
